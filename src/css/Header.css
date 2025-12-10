@@ -1,0 +1,17 @@
+header {
+  display: flex;
+  width: 100%;
+  justify-content: left;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  width: 50px;
+  height: 40px;
+  margin-left: 18px;
+}
+
+header h1 {
+  color: white;
+}
