@@ -315,3 +315,36 @@
   background-color: #1a90d3;
   color: white;
 }
+
+/* Modale d'actions (supprimer/modifier) */
+.modal-content--actions {
+  width: 300px;
+  padding: 15px;
+  text-align: center;
+}
+
+.modal-content--actions h2 {
+  margin: 0 0 15px;
+}
+
+.modal-content--actions .modal-actions {
+  justify-content: space-around;
+}
+
+.modal-content--actions .modal-actions button {
+  padding: 8px 16px;
+}
+
+.modal-content--actions .modal-actions button:first-child {
+  background-color: #1a90d3;
+}
+
+.modal-content--actions .modal-actions button:nth-child(2) {
+  background-color: red;
+  color: white;
+}
+
+.modal-content--actions .modal-actions button:last-child {
+  background-color: #555;
+  color: white;
+}

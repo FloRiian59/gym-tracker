@@ -15,11 +15,20 @@ const dayMap = {
 
 const TrainingInfos = ({ dayIndex, profile }) => {
   const todayName = dayMap[dayIndex];
+  const today = new Date();
+  const todayLocal = today.toLocaleDateString("fr-FR", {
+    timeZone: "Europe/Paris",
+  });
+  const [day, month, year] = todayLocal.split("/");
+  const todayISO = `${year.padStart(4, "0")}-${month.padStart(
+    2,
+    "0"
+  )}-${day.padStart(2, "0")}`;
 
   // États
   const [modalOpen, setModalOpen] = useState(false);
   const [actionModalOpen, setActionModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null); // null = programmée
+  const [selectedSession, setSelectedSession] = useState(null);
   const [selectedExo, setSelectedExo] = useState(null);
   const [selectedSerie, setSelectedSerie] = useState(1);
   const [isWarmup, setIsWarmup] = useState(false);
@@ -31,46 +40,57 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   const [selectedPerf, setSelectedPerf] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Perfs globales (historique + sauvegarde)
-  const [perfs, setPerfs] = useState(() => {
+  // Perfs globales (toutes les dates)
+  const [allPerfs, setAllPerfs] = useState(() => {
     const saved = localStorage.getItem(`trainingPerfs_${profile}`);
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Perfs affichées (reset quand changement de séance/jour)
+  // Perfs affichées (uniquement pour la date actuelle)
   const [displayPerfs, setDisplayPerfs] = useState({});
-  const [currentDate, setCurrentDate] = useState(todayName);
 
-  // Chargement + reset auto quand changement de jour
+  // Chargement des perfs pour la date actuelle
   useEffect(() => {
     const saved = localStorage.getItem(`trainingPerfs_${profile}`);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setPerfs(parsed);
-
-      // Reset complet si changement de jour
-      if (todayName !== currentDate) {
-        setDisplayPerfs({});
-        setCurrentDate(todayName);
-      } else {
-        setDisplayPerfs(parsed);
-      }
+      setAllPerfs(parsed);
+      // On recharge displayPerfs à chaque changement de séance ou de date
+      setDisplayPerfs(parsed[todayISO] || {});
     }
-  }, [profile, todayName, currentDate]);
+  }, [profile, todayISO, selectedSession]); // Ajout de selectedSession
+
+  // Sauvegarde selectedSession dans localStorage
+  useEffect(() => {
+    if (selectedSession !== null) {
+      localStorage.setItem(`selectedSession_${profile}`, selectedSession);
+    }
+  }, [selectedSession, profile]);
+
+  // Chargement de selectedSession au montage
+  useEffect(() => {
+    const savedSession = localStorage.getItem(`selectedSession_${profile}`);
+    if (savedSession) {
+      setSelectedSession(savedSession);
+    }
+  }, [profile]);
 
   // Sauvegarde dans localStorage
   useEffect(() => {
-    localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(perfs));
-  }, [perfs, profile]);
+    localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(allPerfs));
+  }, [allPerfs, profile]);
 
   // Sauvegarde à la fermeture
   useEffect(() => {
     const handleBeforeUnload = () => {
-      localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(perfs));
+      localStorage.setItem(
+        `trainingPerfs_${profile}`,
+        JSON.stringify(allPerfs)
+      );
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [perfs, profile]);
+  }, [allPerfs, profile]);
 
   // Détermination de la séance
   let session;
@@ -79,7 +99,6 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   } else {
     session = TrainingData.find((s) => {
       const muscleList = s.muscles;
-
       switch (selectedSession) {
         case "pecs":
           return muscleList.length === 1 && muscleList.includes("Pecs");
@@ -125,7 +144,6 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   const openModal = (exo, mode = "add", perf = null) => {
     setSelectedExo(exo);
     setMode(mode);
-
     if (mode === "edit" && perf) {
       setSelectedSerie(perf.serie || 1);
       setCharge(perf.charge.toString());
@@ -134,11 +152,10 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       setIsPR(perf.isPR || false);
       setIsWarmup(perf.isWarmup || false);
     } else {
-      const exoPerfs = perfs[exo.id] || { series: [] };
+      const exoPerfs = displayPerfs[exo.id] || { series: [] };
       const effectiveSeries = exoPerfs.series.filter((s) => !s.isWarmup);
       const nextSerie =
         effectiveSeries.length > 0 ? effectiveSeries.length + 1 : 1;
-
       setSelectedSerie(nextSerie);
       setCharge("");
       setReps("");
@@ -149,10 +166,21 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     setModalOpen(true);
   };
 
+  const openActionModal = (exoId, perf) => {
+    setSelectedExo(
+      exercises[
+        Object.keys(exercises).find((muscle) =>
+          exercises[muscle].some((exo) => exo.id === exoId)
+        )
+      ].find((exo) => exo.id === exoId)
+    );
+    setSelectedPerf(perf);
+    setActionModalOpen(true);
+  };
+
   // Soumission
   const handleSubmit = () => {
     if (!selectedExo) return;
-
     const newPerf = {
       serie: isWarmup ? null : selectedSerie,
       charge: parseInt(charge) || 0,
@@ -161,9 +189,6 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       isPR: isPR && !isWarmup,
       isWarmup,
     };
-
-    const today = new Date();
-    const isoDate = today.toISOString().split("T")[0];
     const prettyDate = today.toLocaleDateString("fr-FR", {
       weekday: "long",
       day: "numeric",
@@ -171,9 +196,9 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       year: "numeric",
     });
 
-    const updatedPerfs = { ...perfs };
-    const currentExoData = updatedPerfs[selectedExo.id] || { series: [] };
-
+    // Mise à jour des perfs pour la date actuelle
+    const updatedAllPerfs = { ...allPerfs };
+    const currentExoData = displayPerfs[selectedExo.id] || { series: [] };
     const updatedSeries =
       mode === "edit"
         ? currentExoData.series.map((s) =>
@@ -181,16 +206,19 @@ const TrainingInfos = ({ dayIndex, profile }) => {
           )
         : [...currentExoData.series, newPerf];
 
-    updatedPerfs[selectedExo.id] = {
-      series: updatedSeries,
-      lastUpdated: isoDate,
-      dateLabel: prettyDate,
-      dayName: todayName,
-      exoName: selectedExo.name,
+    updatedAllPerfs[todayISO] = {
+      ...updatedAllPerfs[todayISO],
+      [selectedExo.id]: {
+        series: updatedSeries,
+        lastUpdated: todayISO,
+        dateLabel: prettyDate,
+        dayName: todayName,
+        exoName: selectedExo.name,
+      },
     };
 
-    setPerfs(updatedPerfs);
-    setDisplayPerfs(updatedPerfs);
+    setAllPerfs(updatedAllPerfs);
+    setDisplayPerfs(updatedAllPerfs[todayISO]);
     setModalOpen(false);
     resetForm();
   };
@@ -207,21 +235,21 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   // Suppression
   const handleDelete = () => {
     if (!selectedExo || !selectedPerf) return;
-
-    const updatedPerfs = { ...perfs };
-    const currentExoData = updatedPerfs[selectedExo.id];
-
+    const updatedAllPerfs = { ...allPerfs };
+    const currentExoData = updatedAllPerfs[todayISO]?.[selectedExo.id];
     if (currentExoData) {
-      updatedPerfs[selectedExo.id] = {
-        ...currentExoData,
-        series: currentExoData.series.filter(
-          (s) => s.serie !== selectedPerf.serie
-        ),
+      updatedAllPerfs[todayISO] = {
+        ...updatedAllPerfs[todayISO],
+        [selectedExo.id]: {
+          ...currentExoData,
+          series: currentExoData.series.filter(
+            (s) => s.serie !== selectedPerf.serie
+          ),
+        },
       };
     }
-
-    setPerfs(updatedPerfs);
-    setDisplayPerfs(updatedPerfs);
+    setAllPerfs(updatedAllPerfs);
+    setDisplayPerfs(updatedAllPerfs[todayISO]);
     setActionModalOpen(false);
     setSelectedPerf(null);
   };
@@ -271,7 +299,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession(null);
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -281,7 +309,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession("pecs-triceps");
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -291,7 +319,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession("dos-biceps");
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -301,7 +329,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession("epaules");
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -311,7 +339,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession("biceps-triceps");
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -321,7 +349,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   className="drawer-option"
                   onClick={() => {
                     setSelectedSession("pecs");
-                    setDisplayPerfs({});
+                    setDisplayPerfs(allPerfs[todayISO] || {});
                     setDrawerOpen(false);
                   }}
                 >
@@ -515,21 +543,13 @@ const TrainingInfos = ({ dayIndex, profile }) => {
 
       {actionModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ width: "300px" }}>
+          <div className="modal-content modal-content--actions">
             <h2 style={{ margin: "0" }}>
               Actions pour la série {selectedPerf?.serie}
             </h2>
-            <div
-              className="modal-actions"
-              style={{ display: "flex", justifyContent: "space-around" }}
-            >
+            <div className="modal-actions">
               <button onClick={handleEdit}>Modifier</button>
-              <button
-                onClick={handleDelete}
-                style={{ background: "red", color: "white" }}
-              >
-                Supprimer
-              </button>
+              <button onClick={handleDelete}>Supprimer</button>
               <button onClick={() => setActionModalOpen(false)}>Annuler</button>
             </div>
           </div>

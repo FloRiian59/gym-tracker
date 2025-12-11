@@ -13,33 +13,29 @@ const TrainingHistory = ({ profile }) => {
   useEffect(() => {
     const saved = localStorage.getItem(`trainingPerfs_${profile}`);
     if (!saved) return;
-
     try {
-      const rawPerfs = JSON.parse(saved);
+      const allPerfs = JSON.parse(saved);
       const grouped = {};
 
-      Object.values(rawPerfs).forEach((exo) => {
-        if (!exo.lastUpdated) return;
-
-        const date = exo.lastUpdated;
-        const dateLabel =
-          exo.dateLabel ||
-          new Date(date).toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
-
-        if (!grouped[date]) {
-          grouped[date] = { date, dateLabel, exercises: [] };
-        }
-        grouped[date].exercises.push({
-          exoName: exo.exoName || "Inconnu",
-          series: exo.series || [],
+      // On parcourt chaque date dans allPerfs
+      Object.entries(allPerfs).forEach(([date, datePerfs]) => {
+        const dateLabel = new Date(date).toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
         });
+
+        // On regroupe les exercices de cette date
+        const exercises = Object.entries(datePerfs).map(([exoId, exoData]) => ({
+          exoName: exoData.exoName || "Inconnu",
+          series: exoData.series || [],
+        }));
+
+        grouped[date] = { date, dateLabel, exercises };
       });
 
+      // On trie par date (la plus récente en premier)
       const sorted = Object.values(grouped).sort((a, b) =>
         b.date.localeCompare(a.date)
       );
@@ -60,13 +56,13 @@ const TrainingHistory = ({ profile }) => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     setSelectedDate(normalized);
-
     const dateStr = getLocalDateString(normalized);
     const ref = dayRefs.current[dateStr];
     if (ref) {
       ref.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
+
   const tileContent = ({ date, view }) => {
     if (view !== "month") return null;
     const dateStr = getLocalDateString(date);
@@ -82,6 +78,7 @@ const TrainingHistory = ({ profile }) => {
       </div>
     );
   }
+
   const dateStr = getLocalDateString(selectedDate);
   const filteredHistory = history.filter((day) => day.date === dateStr);
 
@@ -106,7 +103,6 @@ const TrainingHistory = ({ profile }) => {
             className="history-day"
           >
             <h2 className="day-title">{day.dateLabel}</h2>
-
             {day.exercises.map((exo, i) => (
               <div key={i} className="history-exercise">
                 <h3 className="exercise-name">{exo.exoName}</h3>
