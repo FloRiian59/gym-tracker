@@ -15,10 +15,11 @@ const dayMap = {
 
 const TrainingInfos = ({ dayIndex, profile }) => {
   const todayName = dayMap[dayIndex];
-  const session = TrainingData.find((s) => s.day === todayName);
 
+  // États
   const [modalOpen, setModalOpen] = useState(false);
   const [actionModalOpen, setActionModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null); // null = programmée
   const [selectedExo, setSelectedExo] = useState(null);
   const [selectedSerie, setSelectedSerie] = useState(1);
   const [isWarmup, setIsWarmup] = useState(false);
@@ -28,35 +29,99 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   const [isPR, setIsPR] = useState(false);
   const [mode, setMode] = useState("add");
   const [selectedPerf, setSelectedPerf] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Perfs globales (historique + sauvegarde)
   const [perfs, setPerfs] = useState(() => {
     const saved = localStorage.getItem(`trainingPerfs_${profile}`);
-    if (!saved) return {};
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      console.error("Erreur parsing localStorage pour", profile, e);
-      return {};
-    }
+    return saved ? JSON.parse(saved) : {};
   });
 
+  // Perfs affichées (reset quand changement de séance/jour)
+  const [displayPerfs, setDisplayPerfs] = useState({});
+  const [currentDate, setCurrentDate] = useState(todayName);
+
+  // Chargement + reset auto quand changement de jour
+  useEffect(() => {
+    const saved = localStorage.getItem(`trainingPerfs_${profile}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setPerfs(parsed);
+
+      // Reset complet si changement de jour
+      if (todayName !== currentDate) {
+        setDisplayPerfs({});
+        setCurrentDate(todayName);
+      } else {
+        setDisplayPerfs(parsed);
+      }
+    }
+  }, [profile, todayName, currentDate]);
+
+  // Sauvegarde dans localStorage
   useEffect(() => {
     localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(perfs));
   }, [perfs, profile]);
 
+  // Sauvegarde à la fermeture
   useEffect(() => {
     const handleBeforeUnload = () => {
       localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(perfs));
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(perfs));
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [perfs, profile]);
 
+  // Détermination de la séance
+  let session;
+  if (selectedSession === null) {
+    session = TrainingData.find((s) => s.day === todayName);
+  } else {
+    session = TrainingData.find((s) => {
+      const muscleList = s.muscles;
+
+      switch (selectedSession) {
+        case "pecs":
+          return muscleList.length === 1 && muscleList.includes("Pecs");
+        case "epaules":
+          return muscleList.includes("Épaules");
+        case "biceps-triceps":
+          return (
+            muscleList.length === 2 &&
+            muscleList.includes("Biceps") &&
+            muscleList.includes("Triceps")
+          );
+        case "pecs-triceps":
+          return muscleList.some((m) =>
+            ["Pecs", "Triceps", "Épaules"].includes(m)
+          );
+        case "dos-biceps":
+          return muscleList.some((m) => ["Dos", "Biceps"].includes(m));
+        default:
+          return false;
+      }
+    });
+  }
+
+  if (!session) {
+    return (
+      <div className="training-container">
+        <div className="training-infos">
+          <div className="training-date">Séance du {todayName}</div>
+          <div
+            className="training-muscle"
+            style={{ fontSize: "1.8em", color: "#666" }}
+          >
+            Aucune séance sélectionnée
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { muscles, exercises } = session;
+
+  // Ouverture modale
   const openModal = (exo, mode = "add", perf = null) => {
     setSelectedExo(exo);
     setMode(mode);
@@ -84,6 +149,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     setModalOpen(true);
   };
 
+  // Soumission
   const handleSubmit = () => {
     if (!selectedExo) return;
 
@@ -93,7 +159,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       reps: parseInt(reps) || 0,
       rpe: parseInt(rpe) || 0,
       isPR: isPR && !isWarmup,
-      isWarmup: isWarmup,
+      isWarmup,
     };
 
     const today = new Date();
@@ -105,10 +171,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       year: "numeric",
     });
 
-    // On garde TOUTES les perfs existantes
     const updatedPerfs = { ...perfs };
-
-    // On ne met à jour QUE l'exercice actuel
     const currentExoData = updatedPerfs[selectedExo.id] || { series: [] };
 
     const updatedSeries =
@@ -127,6 +190,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     };
 
     setPerfs(updatedPerfs);
+    setDisplayPerfs(updatedPerfs);
     setModalOpen(false);
     resetForm();
   };
@@ -136,26 +200,13 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     setReps("");
     setRpe("");
     setIsPR(false);
+    setIsWarmup(false);
     setMode("add");
   };
 
-  const openActionModal = (exoId, perf) => {
-    setSelectedExo({ id: exoId });
-    setSelectedPerf(perf);
-    setActionModalOpen(true);
-  };
-
+  // Suppression
   const handleDelete = () => {
     if (!selectedExo || !selectedPerf) return;
-
-    const today = new Date();
-    const isoDate = today.toISOString().split("T")[0];
-    const prettyDate = today.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
 
     const updatedPerfs = { ...perfs };
     const currentExoData = updatedPerfs[selectedExo.id];
@@ -166,13 +217,11 @@ const TrainingInfos = ({ dayIndex, profile }) => {
         series: currentExoData.series.filter(
           (s) => s.serie !== selectedPerf.serie
         ),
-        lastUpdated: isoDate,
-        dateLabel: prettyDate,
-        dayName: todayName,
       };
     }
 
     setPerfs(updatedPerfs);
+    setDisplayPerfs(updatedPerfs);
     setActionModalOpen(false);
     setSelectedPerf(null);
   };
@@ -182,16 +231,108 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     openModal(selectedExo, "edit", selectedPerf);
   };
 
-  if (!session) return null;
-
-  const { muscles, exercises } = session;
-
   return (
     <div className="training-container">
       <div className="training-infos">
         <div className="training-date">Séance du {todayName}</div>
-        <div className="training-muscle">{muscles.join(" / ")}</div>
+        <div className="muscle-selector" onClick={() => setDrawerOpen(true)}>
+          <span className="muscle-text">
+            {selectedSession === null
+              ? muscles.join(" / ")
+              : selectedSession === "pecs-triceps"
+              ? "Pecs / Triceps"
+              : selectedSession === "dos-biceps"
+              ? "Dos / Biceps"
+              : selectedSession === "epaules"
+              ? "Épaules"
+              : selectedSession === "biceps-triceps"
+              ? "Biceps / Triceps"
+              : selectedSession === "pecs"
+              ? "Pecs"
+              : muscles.join(" / ")}
+          </span>
+          <span className="dropdown-arrow">▼</span>
+        </div>
+
+        {/* DRAWER QUI MONTE DEPUIS LE BAS */}
+        {drawerOpen && (
+          <>
+            <div
+              className="drawer-overlay"
+              onClick={() => setDrawerOpen(false)}
+            />
+            <div className="session-drawer">
+              <div className="drawer-header">
+                <h3>Choisir une séance</h3>
+                <button onClick={() => setDrawerOpen(false)}>✕</button>
+              </div>
+              <div className="drawer-options">
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession(null);
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Séance programmée ({muscles.join(" / ")})
+                </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("pecs-triceps");
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Pecs / Triceps
+                </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("dos-biceps");
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Dos / Biceps
+                </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("epaules");
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Épaules
+                </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("biceps-triceps");
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Biceps / Triceps
+                </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("pecs");
+                    setDisplayPerfs({});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Pecs
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
       <div className="training-tables-scroll">
         {muscles.map((muscle) => (
           <div key={muscle} className="training-table-container">
@@ -203,18 +344,18 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                   <th>Charge</th>
                   <th>Reps</th>
                   <th>RPE</th>
-                  <th>Actions</th>
+                  <th>Ajouter</th>
                 </tr>
               </thead>
               <tbody>
-                {exercises[muscle].map((exo, index) => (
-                  <React.Fragment key={index}>
+                {exercises[muscle].map((exo) => (
+                  <React.Fragment key={exo.id}>
                     <tr>
                       <td>{exo.name}</td>
                       <td>
-                        {perfs[exo.id]?.series.map((s) => (
+                        {displayPerfs[exo.id]?.series.map((s) => (
                           <div
-                            key={s.serie}
+                            key={`${exo.id}-${s.serie || "warmup"}`}
                             onClick={() => openActionModal(exo.id, s)}
                             style={{
                               cursor: "pointer",
@@ -230,9 +371,9 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                         ))}
                       </td>
                       <td>
-                        {perfs[exo.id]?.series.map((s) => (
+                        {displayPerfs[exo.id]?.series.map((s) => (
                           <div
-                            key={s.serie}
+                            key={`${exo.id}-${s.serie || "warmup"}`}
                             onClick={() => openActionModal(exo.id, s)}
                             style={{
                               cursor: "pointer",
@@ -248,9 +389,9 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                         ))}
                       </td>
                       <td>
-                        {perfs[exo.id]?.series.map((s) => (
+                        {displayPerfs[exo.id]?.series.map((s) => (
                           <div
-                            key={s.serie}
+                            key={`${exo.id}-${s.serie || "warmup"}`}
                             onClick={() => openActionModal(exo.id, s)}
                             style={{
                               cursor: "pointer",
@@ -283,6 +424,8 @@ const TrainingInfos = ({ dayIndex, profile }) => {
           </div>
         ))}
       </div>
+
+      {/* MODALES — inchangées */}
       {modalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -319,9 +462,13 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <input
                     type="number"
+                    inputMode="decimal"
+                    pattern="[0-9]*"
                     value={charge}
                     onChange={(e) => setCharge(e.target.value)}
                     style={{ flex: 1 }}
+                    min="0"
+                    step="0.5"
                   />
                   <span style={{ marginLeft: "10px" }}>kg</span>
                 </div>
@@ -330,21 +477,26 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                 Reps :
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                   value={reps}
                   onChange={(e) => setReps(e.target.value)}
+                  min="0"
                 />
               </label>
               <label>
                 RPE (1-10) :
                 <input
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={rpe}
                   onChange={(e) => setRpe(e.target.value)}
                   min="1"
                   max="10"
                 />
               </label>
-              <label>
+              <label className="pr-label">
                 PR
                 <input
                   type="checkbox"
@@ -361,7 +513,6 @@ const TrainingInfos = ({ dayIndex, profile }) => {
         </div>
       )}
 
-      {/* Petite modale pour actions (modifier/supprimer) */}
       {actionModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ width: "300px" }}>

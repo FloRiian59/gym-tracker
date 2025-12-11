@@ -1,3 +1,4 @@
+/* Container principal */
 .training-container {
   display: flex;
   flex-direction: column;
@@ -7,25 +8,158 @@
   margin-bottom: 25px;
 }
 
+/* Infos de la séance */
 .training-infos {
-  margin-bottom: 15px;
+  text-align: center;
+  margin-bottom: 16px;
 }
 
-.training-muscle {
-  color: #a3a3a2;
+.training-date {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+
+/* Sélecteur de muscle */
+.muscle-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  background: rgba(26, 144, 211, 0.1);
+  border: 2px solid transparent;
+}
+
+.muscle-selector:hover {
+  background: rgba(26, 144, 211, 0.2);
+  border-color: #1a90d3;
+}
+
+.muscle-text {
+  font-size: 1.1em;
+  font-weight: 800;
+  color: #1a90d3;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dropdown-arrow {
+  color: #1a90d3;
+}
+
+/* Drawer (menu déroulant) */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+}
+
+.session-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1e1e1e;
+  border-radius: 20px 20px 0 0;
+  z-index: 1000;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 10px;
+  border-bottom: 1px solid #333;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 1.4em;
+  color: #1a90d3;
+}
+
+.drawer-header button {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.6em;
+  cursor: pointer;
+}
+
+.drawer-option {
+  padding: 18px 20px;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: white;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.drawer-option:hover {
+  background: #1a90d3;
+}
+
+/* Tableaux d'exercices */
+.training-tables-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  margin-bottom: 25px;
+  box-sizing: border-box;
+}
+
+.training-tables-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.training-tables-scroll::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+.training-tables-scroll::-webkit-scrollbar-thumb {
+  background: #1a90d3;
+  border-radius: 4px;
+}
+
+.training-tables-scroll::-webkit-scrollbar-thumb:hover {
+  background: #2a9fd3;
 }
 
 .training-table-container {
   width: 95%;
-  margin: 0 auto;
-  margin-bottom: 20px;
+  margin: 0 auto 20px;
   font-size: 14px;
 }
 
 .muscle-title {
   text-align: left;
-  margin: 0;
-  margin-bottom: 15px;
+  margin: 0 0 15px;
   font-size: 20px;
   color: white;
 }
@@ -62,48 +196,7 @@
   color: white;
 }
 
-.training-tables-scroll {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-height: 70vh;
-  overflow-y: auto;
-  margin-bottom: 25px;
-  box-sizing: border-box;
-}
-
-.training-tables-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.training-tables-scroll::-webkit-scrollbar-track {
-  background: #121212;
-}
-
-.training-tables-scroll::-webkit-scrollbar-thumb {
-  background: #1a90d3;
-  border-radius: 4px;
-}
-
-.training-tables-scroll::-webkit-scrollbar-thumb:hover {
-  background: #2a9fd3;
-}
-
-.add-perf-btn {
-  background-color: #1a90d3;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+/* Bouton d'ajout de performance */
 .add-perf-btn-container {
   display: flex;
   justify-content: center;
@@ -111,7 +204,22 @@
   height: 100%;
 }
 
-/* Modale */
+.add-perf-btn {
+  background-color: #1a90d3;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modales */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -147,12 +255,10 @@
   gap: 5px;
 }
 
-.modal-form label:nth-child(1) {
+.modal-form .warmup-label,
+.modal-form .pr-label {
   flex-direction: row;
-}
-
-.modal-form label:nth-child(6) {
-  flex-direction: row;
+  align-items: center;
 }
 
 .modal-form input,
@@ -162,6 +268,28 @@
   border: 1px solid #555;
   background-color: #2d2d2d;
   color: white;
+}
+
+.modal-form input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  border: 2px solid #333;
+  border-radius: 10px;
+  background: #111;
+  color: white;
+  margin-top: 8px;
+}
+
+.modal-form input[type="number"]::-webkit-inner-spin-button,
+.modal-form input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.modal-form input[type="number"]:focus {
+  outline: none;
+  border-color: #4aa8de;
+  box-shadow: 0 0 10px rgba(74, 143, 222, 0.4);
 }
 
 .modal-actions {
