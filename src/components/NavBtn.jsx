@@ -10,7 +10,11 @@ const NavBtn = ({ onSwitch }) => {
   };
 
   return (
-    <div className="nav-container">
+    <div
+      className={`nav-container ${
+        isActive === "historique" ? "is-historique" : ""
+      }`}
+    >
       <button
         className={isActive === "saisie" ? "saisie" : "historique"}
         onClick={() => handleClick("saisie")}

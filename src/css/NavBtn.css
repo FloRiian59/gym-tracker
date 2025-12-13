@@ -1,31 +1,52 @@
 .nav-container {
-  width: 100%;
+  width: 300px;
   display: flex;
-  justify-content: center;
-  margin-bottom: 25px;
+  background-color: #15171a;
+  border-radius: 25px;
+  padding: 4px;
+  margin: 0 auto 25px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .nav-container button {
   border: none;
-  font-size: 18px;
-  padding: 10px;
-  width: 35%;
-  border-radius: 5px;
-  height: fit-content;
+  font-size: 16px;
+  padding: 10px 20px;
+  width: 100%;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1;
+  position: relative;
+  font-weight: 500;
 }
 
-.nav-container button:active {
-  transform: scale(0.98);
-}
-
-.saisie {
-  background-color: #1a90d3;
-  color: white;
-}
-
-.historique {
-  background-color: #15171a;
+.nav-container button.historique {
+  background-color: transparent;
   color: #a3a2a2;
+  border-radius: 20px;
+}
+
+.nav-container button.saisie {
+  background-color: transparent;
+  color: white;
+  border-radius: 20px;
+}
+
+.nav-container::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 5px);
+  height: calc(100% - 8px);
+  background-color: #303030;
+  border-radius: 20px;
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 0;
+}
+
+.nav-container.is-historique::before {
+  transform: translateX(100%);
 }
