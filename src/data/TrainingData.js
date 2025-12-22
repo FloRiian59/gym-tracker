@@ -89,7 +89,21 @@ const TrainingData = [
                 { id: "pec-fly", name: "Écarté Machine" },
             ]
         }
-    }
+    },
+    {
+        id: "weekend-full-body",
+        day: "Weekend",
+        dayIndex: 6,
+        muscles: ["Dos", "Épaules", "Pecs", "Triceps", "Biceps", "Jambes"],
+        exercises: {},
+    },
+    {
+        id: "weekend-full-body",
+        day: "Weekend",
+        dayIndex: 0,
+        muscles: ["Dos", "Épaules", "Pecs", "Triceps", "Biceps", "Jambes"],
+        exercises: {},
+    },
 ]
 
 export default TrainingData;

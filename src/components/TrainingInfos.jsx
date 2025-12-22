@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import "../css/TrainingInfos.css";
 import TrainingData from "../data/TrainingData";
-
+import FullBodyData from "../data/FullBodyData";
 const dayMap = {
   1: "Lundi",
   2: "Mardi",
@@ -39,6 +39,14 @@ const TrainingInfos = ({ dayIndex, profile }) => {
   const [mode, setMode] = useState("add");
   const [selectedPerf, setSelectedPerf] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedFullBodyMuscles, setSelectedFullBodyMuscles] = useState([]);
+  const [selectedFullBodyExercises, setSelectedFullBodyExercises] = useState(
+    {}
+  );
+
+  const getExercisesForMuscle = (muscle) => {
+    return FullBodyData.exercises[muscle] || [];
+  };
 
   // Perfs globales (toutes les dates)
   const [allPerfs, setAllPerfs] = useState(() => {
@@ -55,10 +63,9 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     if (saved) {
       const parsed = JSON.parse(saved);
       setAllPerfs(parsed);
-      // On recharge displayPerfs à chaque changement de séance ou de date
       setDisplayPerfs(parsed[todayISO] || {});
     }
-  }, [profile, todayISO, selectedSession]); // Ajout de selectedSession
+  }, [profile, todayISO, selectedSession]);
 
   // Sauvegarde selectedSession dans localStorage
   useEffect(() => {
@@ -75,7 +82,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     }
   }, [profile]);
 
-  // Sauvegarde dans localStorage
+  // Sauvegarde des perfs dans localStorage
   useEffect(() => {
     localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(allPerfs));
   }, [allPerfs, profile]);
@@ -92,10 +99,49 @@ const TrainingInfos = ({ dayIndex, profile }) => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [allPerfs, profile]);
 
+  // Sauvegarde des muscles Full Body
+  useEffect(() => {
+    if (selectedFullBodyMuscles.length > 0) {
+      localStorage.setItem(
+        `fullBodyMuscles_${profile}`,
+        JSON.stringify(selectedFullBodyMuscles)
+      );
+    }
+  }, [selectedFullBodyMuscles, profile]);
+
+  // Sauvegarde des exercices Full Body
+  useEffect(() => {
+    if (Object.keys(selectedFullBodyExercises).length > 0) {
+      localStorage.setItem(
+        `fullBodyExercises_${profile}`,
+        JSON.stringify(selectedFullBodyExercises)
+      );
+    }
+  }, [selectedFullBodyExercises, profile]);
+
+  // Chargement des muscles Full Body
+  useEffect(() => {
+    const savedMuscles = localStorage.getItem(`fullBodyMuscles_${profile}`);
+    if (savedMuscles) {
+      setSelectedFullBodyMuscles(JSON.parse(savedMuscles));
+    }
+  }, [profile]);
+
+  // Chargement des exercices Full Body
+  useEffect(() => {
+    const savedExercises = localStorage.getItem(`fullBodyExercises_${profile}`);
+    if (savedExercises) {
+      setSelectedFullBodyExercises(JSON.parse(savedExercises));
+    }
+  }, [profile]);
+
+  // Détermination de la séance
   // Détermination de la séance
   let session;
   if (selectedSession === null) {
     session = TrainingData.find((s) => s.day === todayName);
+  } else if (selectedSession === "full-body") {
+    session = FullBodyData;
   } else {
     session = TrainingData.find((s) => {
       const muscleList = s.muscles;
@@ -121,7 +167,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
       }
     });
   }
-
+  // Si aucune séance n'est trouvée
   if (!session) {
     return (
       <div className="training-container">
@@ -267,6 +313,8 @@ const TrainingInfos = ({ dayIndex, profile }) => {
           <span className="muscle-text">
             {selectedSession === null
               ? muscles.join(" / ")
+              : selectedSession === "full-body"
+              ? "Full Body"
               : selectedSession === "pecs-triceps"
               ? "Pecs / Triceps"
               : selectedSession === "dos-biceps"
@@ -282,7 +330,7 @@ const TrainingInfos = ({ dayIndex, profile }) => {
           <span className="dropdown-arrow">▼</span>
         </div>
 
-        {/* DRAWER QUI MONTE DEPUIS LE BAS */}
+        {/* DRAWER POUR CHOISIR LA SÉANCE */}
         {drawerOpen && (
           <>
             <div
@@ -355,30 +403,205 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                 >
                   Pecs
                 </div>
+                <div
+                  className="drawer-option"
+                  onClick={() => {
+                    setSelectedSession("full-body");
+                    setDisplayPerfs(allPerfs[todayISO] || {});
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Full Body
+                </div>
               </div>
             </div>
           </>
         )}
       </div>
 
-      <div className="training-tables-scroll">
-        {muscles.map((muscle) => (
-          <div key={muscle} className="training-table-container">
-            <h3 className="muscle-title">{muscle}</h3>
-            <table className="training-table">
-              <thead>
-                <tr>
-                  <th>Exercice</th>
-                  <th>Charge</th>
-                  <th>Reps</th>
-                  <th>RPE</th>
-                  <th>Ajouter</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exercises[muscle].map((exo) => (
-                  <React.Fragment key={exo.id}>
+      {/* SÉANCE FULL BODY */}
+      {selectedSession === "full-body" ? (
+        <div className="full-body-section">
+          {/* Sélecteur pour ajouter un muscle */}
+          <div className="full-body-muscle-selector">
+            <select
+              value=""
+              onChange={(e) => {
+                const muscle = e.target.value;
+                if (muscle && !selectedFullBodyMuscles.includes(muscle)) {
+                  setSelectedFullBodyMuscles([
+                    ...selectedFullBodyMuscles,
+                    muscle,
+                  ]);
+                }
+              }}
+            >
+              <option value="">Ajouter un muscle</option>
+              {FullBodyData.muscles
+                .filter((m) => !selectedFullBodyMuscles.includes(m))
+                .map((muscle) => (
+                  <option key={muscle} value={muscle}>
+                    {muscle}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Affichage des muscles sélectionnés et de leurs exercices */}
+          {selectedFullBodyMuscles.map((muscle) => (
+            <div key={muscle} className="muscle-exercise-container">
+              <h3 className="muscle-title">{muscle}</h3>
+
+              {/* Sélecteur pour ajouter un exercice */}
+              <div className="add-exercise-section">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const exerciseId = e.target.value;
+                    if (exerciseId) {
+                      const exercise = getExercisesForMuscle(muscle).find(
+                        (exo) => exo.id === exerciseId
+                      );
+                      if (exercise) {
+                        const currentExercises =
+                          selectedFullBodyExercises[muscle] || [];
+                        if (
+                          !currentExercises.some(
+                            (exo) => exo.id === exercise.id
+                          )
+                        ) {
+                          setSelectedFullBodyExercises({
+                            ...selectedFullBodyExercises,
+                            [muscle]: [...currentExercises, exercise],
+                          });
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Ajouter un exercice</option>
+                  {getExercisesForMuscle(muscle)
+                    .filter(
+                      (exo) =>
+                        !selectedFullBodyExercises[muscle]?.some(
+                          (selectedExo) => selectedExo.id === exo.id
+                        )
+                    )
+                    .map((exo) => (
+                      <option key={exo.id} value={exo.id}>
+                        {exo.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Tableau des exercices sélectionnés */}
+              {selectedFullBodyExercises[muscle]?.length > 0 && (
+                <table className="training-table">
+                  <thead>
                     <tr>
+                      <th>Exercice</th>
+                      <th>Charge</th>
+                      <th>Reps</th>
+                      <th>RPE</th>
+                      <th>Ajouter</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedFullBodyExercises[muscle].map((exo) => (
+                      <tr key={exo.id}>
+                        <td>{exo.name}</td>
+                        <td>
+                          {displayPerfs[exo.id]?.series.map((s) => (
+                            <div
+                              key={`${exo.id}-${s.serie || "warmup"}`}
+                              onClick={() => openActionModal(exo.id, s)}
+                              style={{
+                                cursor: "pointer",
+                                color: s.isWarmup
+                                  ? "#ff8c00"
+                                  : s.isPR
+                                  ? "#00ff00"
+                                  : "#4fc3f7",
+                              }}
+                            >
+                              {s.charge}kg
+                            </div>
+                          ))}
+                        </td>
+                        <td>
+                          {displayPerfs[exo.id]?.series.map((s) => (
+                            <div
+                              key={`${exo.id}-${s.serie || "warmup"}`}
+                              onClick={() => openActionModal(exo.id, s)}
+                              style={{
+                                cursor: "pointer",
+                                color: s.isWarmup
+                                  ? "#ff8c00"
+                                  : s.isPR
+                                  ? "#00ff00"
+                                  : "#4fc3f7",
+                              }}
+                            >
+                              {s.reps}
+                            </div>
+                          ))}
+                        </td>
+                        <td>
+                          {displayPerfs[exo.id]?.series.map((s) => (
+                            <div
+                              key={`${exo.id}-${s.serie || "warmup"}`}
+                              onClick={() => openActionModal(exo.id, s)}
+                              style={{
+                                cursor: "pointer",
+                                color: s.isWarmup
+                                  ? "#ff8c00"
+                                  : s.isPR
+                                  ? "#00ff00"
+                                  : "#4fc3f7",
+                              }}
+                            >
+                              {s.rpe || "-"}
+                            </div>
+                          ))}
+                        </td>
+                        <td>
+                          <div className="add-perf-btn-container">
+                            <button
+                              className="add-perf-btn"
+                              onClick={() => openModal(exo)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* SÉANCES CLASSIQUES */
+        <div className="training-tables-scroll">
+          {muscles.map((muscle) => (
+            <div key={muscle} className="training-table-container">
+              <h3 className="muscle-title">{muscle}</h3>
+              <table className="training-table">
+                <thead>
+                  <tr>
+                    <th>Exercice</th>
+                    <th>Charge</th>
+                    <th>Reps</th>
+                    <th>RPE</th>
+                    <th>Ajouter</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exercises[muscle]?.map((exo) => (
+                    <tr key={exo.id}>
                       <td>{exo.name}</td>
                       <td>
                         {displayPerfs[exo.id]?.series.map((s) => (
@@ -445,15 +668,15 @@ const TrainingInfos = ({ dayIndex, profile }) => {
                         </div>
                       </td>
                     </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
-      </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* MODALES — inchangées */}
+      {/* MODALES */}
       {modalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">

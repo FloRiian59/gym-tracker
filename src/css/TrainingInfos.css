@@ -206,6 +206,90 @@
   color: #d0d0d0;
 }
 
+/* Sélecteur de muscle pour Full Body */
+.full-body-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.full-body-muscle-selector select,
+.add-exercise-section select {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background-color: #15171a;
+  border: 2px solid #333;
+  color: #919191;
+  font-size: 0.9em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  max-width: 230px;
+  margin: 4px 0;
+}
+
+.full-body-muscle-selector select:focus,
+.add-exercise-section select:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+/* Option des sélecteurs */
+.full-body-muscle-selector option,
+.add-exercise-section option {
+  background-color: #15171a;
+  color: #fff;
+  padding: 8px;
+}
+
+/* Conteneur pour chaque muscle */
+.muscle-exercise-container {
+  margin-bottom: 16px;
+  padding: 12px 0px;
+  width: 97%;
+}
+
+/* Titre du muscle */
+.muscle-exercise-container .muscle-title {
+  font-size: 1.1em;
+  font-weight: 800;
+  color: #919191;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+/* Bouton pour ajouter un exercice */
+.add-exercise-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #4fc3f7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.add-exercise-btn:hover {
+  background-color: #3aa0d7;
+}
+
+/* Section pour ajouter un exercice */
+.add-exercise-section {
+  margin: 8px 0;
+}
+
 /* Bouton d'ajout de performance */
 .add-perf-btn-container {
   display: flex;
@@ -220,7 +304,7 @@
   border: 1px solid #3a3a3a;
   width: 18px;
   height: 18px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   cursor: pointer;
   display: flex;
