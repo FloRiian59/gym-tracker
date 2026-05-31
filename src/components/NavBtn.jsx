@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "../css/NavBtn.css";
 
 const NavBtn = ({ onSwitch }) => {
   const [isActive, setIsActive] = useState("saisie");

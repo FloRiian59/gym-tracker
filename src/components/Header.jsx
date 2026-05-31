@@ -1,10 +1,18 @@
-import "../css/Header.css";
-import logo from "../../public/assets/Logo.png";
 const Header = () => {
   return (
     <header>
-      <img className="logo" src={logo} alt="logo app" />
-      <h1>Gym Tracker</h1>
+      <span
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "16px",
+          fontWeight: 700,
+          letterSpacing: ".08em",
+          textTransform: "uppercase",
+          color: "var(--accent)",
+        }}
+      >
+        Gym Tracker
+      </span>
     </header>
   );
 };

@@ -1,5 +1,6 @@
 {
   "name": "gym-tracker",
+  "homepage": "https://floriian59.github.io/gym-tracker/",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,9 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "react": "^19.2.0",
     "react-calendar": "^6.0.0",
     "react-dom": "^19.2.0"

@@ -1,783 +1,658 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import "../css/TrainingInfos.css";
-import TrainingData from "../data/TrainingData";
-import FullBodyData from "../data/FullBodyData";
-const dayMap = {
-  1: "Lundi",
-  2: "Mardi",
-  3: "Mercredi",
-  4: "Jeudi",
-  5: "Vendredi",
-  6: "Samedi",
-  0: "Dimanche",
-};
+import { useState, useEffect, useCallback } from "react";
+import {
+  getSetsBySession,
+  getExercisesGrouped,
+  addSet,
+  updateSet,
+  deleteSet,
+} from "../queries";
 
-const TrainingInfos = ({ dayIndex, profile }) => {
-  const todayName = dayMap[dayIndex];
+const TrainingInfos = ({
+  todayISO,
+  sessionId,
+  activeTemplate,
+  onChangeSession,
+}) => {
   const today = new Date();
-  const todayLocal = today.toLocaleDateString("fr-FR", {
-    timeZone: "Europe/Paris",
+  const prettyDay = today.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
   });
-  const [day, month, year] = todayLocal.split("/");
-  const todayISO = `${year.padStart(4, "0")}-${month.padStart(
-    2,
-    "0"
-  )}-${day.padStart(2, "0")}`;
+  const isFree = activeTemplate?.id === "free";
 
-  // États
+  const [loading, setLoading] = useState(true);
+  const [displayPerfs, setDisplayPerfs] = useState({});
+  const [exerciseMap, setExerciseMap] = useState({});
+  const [allExercises, setAllExercises] = useState({});
+
+  // Mode libre
+  const [freeExercises, setFreeExercises] = useState(() => {
+    const saved = localStorage.getItem(`freeExercises_${todayISO}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Modales
   const [modalOpen, setModalOpen] = useState(false);
-  const [actionModalOpen, setActionModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [actionOpen, setActionOpen] = useState(false);
+  const [addExoDrawer, setAddExoDrawer] = useState(false);
   const [selectedExo, setSelectedExo] = useState(null);
+  const [selectedPerf, setSelectedPerf] = useState(null);
+  const [mode, setMode] = useState("add");
+  const [filterMuscle, setFilterMuscle] = useState("");
+
+  // Formulaire
   const [selectedSerie, setSelectedSerie] = useState(1);
   const [isWarmup, setIsWarmup] = useState(false);
   const [charge, setCharge] = useState("");
   const [reps, setReps] = useState("");
   const [rpe, setRpe] = useState("");
   const [isPR, setIsPR] = useState(false);
-  const [mode, setMode] = useState("add");
-  const [selectedPerf, setSelectedPerf] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedFullBodyMuscles, setSelectedFullBodyMuscles] = useState([]);
-  const [selectedFullBodyExercises, setSelectedFullBodyExercises] = useState(
-    {}
-  );
+  const [saving, setSaving] = useState(false);
 
-  const getExercisesForMuscle = (muscle) => {
-    return FullBodyData.exercises[muscle] || [];
-  };
-
-  // Perfs globales (toutes les dates)
-  const [allPerfs, setAllPerfs] = useState(() => {
-    const saved = localStorage.getItem(`trainingPerfs_${profile}`);
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // Perfs affichées (uniquement pour la date actuelle)
-  const [displayPerfs, setDisplayPerfs] = useState({});
-
-  // Chargement des perfs pour la date actuelle
+  /* ── Persist freeExercises ── */
   useEffect(() => {
-    const saved = localStorage.getItem(`trainingPerfs_${profile}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setAllPerfs(parsed);
-      setDisplayPerfs(parsed[todayISO] || {});
-    }
-  }, [profile, todayISO, selectedSession]);
-
-  // Sauvegarde selectedSession dans localStorage
-  useEffect(() => {
-    if (selectedSession !== null) {
-      localStorage.setItem(`selectedSession_${profile}`, selectedSession);
-    }
-  }, [selectedSession, profile]);
-
-  // Chargement de selectedSession au montage
-  useEffect(() => {
-    const savedSession = localStorage.getItem(`selectedSession_${profile}`);
-    if (savedSession) {
-      setSelectedSession(savedSession);
-    }
-  }, [profile]);
-
-  // Sauvegarde des perfs dans localStorage
-  useEffect(() => {
-    localStorage.setItem(`trainingPerfs_${profile}`, JSON.stringify(allPerfs));
-  }, [allPerfs, profile]);
-
-  // Sauvegarde à la fermeture
-  useEffect(() => {
-    const handleBeforeUnload = () => {
+    if (isFree)
       localStorage.setItem(
-        `trainingPerfs_${profile}`,
-        JSON.stringify(allPerfs)
+        `freeExercises_${todayISO}`,
+        JSON.stringify(freeExercises),
       );
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [allPerfs, profile]);
+  }, [freeExercises, todayISO, isFree]);
 
-  // Sauvegarde des muscles Full Body
-  useEffect(() => {
-    if (selectedFullBodyMuscles.length > 0) {
-      localStorage.setItem(
-        `fullBodyMuscles_${profile}`,
-        JSON.stringify(selectedFullBodyMuscles)
-      );
+  /* ── Chargement ── */
+  const load = useCallback(async () => {
+    if (!sessionId) return;
+    setLoading(true);
+    try {
+      const [grouped, perfs] = await Promise.all([
+        getExercisesGrouped(),
+        getSetsBySession(sessionId),
+      ]);
+      const map = {};
+      Object.entries(grouped).forEach(([muscleName, exos]) => {
+        exos.forEach((exo) => {
+          map[exo.name] = exo.id;
+          exo.muscleName = muscleName;
+        });
+      });
+      setExerciseMap(map);
+      setAllExercises(grouped);
+      setDisplayPerfs(perfs);
+    } catch (err) {
+      console.error("Erreur chargement :", err.message);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedFullBodyMuscles, profile]);
+  }, [sessionId]);
 
-  // Sauvegarde des exercices Full Body
   useEffect(() => {
-    if (Object.keys(selectedFullBodyExercises).length > 0) {
-      localStorage.setItem(
-        `fullBodyExercises_${profile}`,
-        JSON.stringify(selectedFullBodyExercises)
-      );
-    }
-  }, [selectedFullBodyExercises, profile]);
+    load();
+  }, [load]);
 
-  // Chargement des muscles Full Body
-  useEffect(() => {
-    const savedMuscles = localStorage.getItem(`fullBodyMuscles_${profile}`);
-    if (savedMuscles) {
-      setSelectedFullBodyMuscles(JSON.parse(savedMuscles));
-    }
-  }, [profile]);
+  /* ── Exercices à afficher ── */
+  const exercisesToShow =
+    isFree ? freeExercises : activeTemplate?.exercises || [];
 
-  // Chargement des exercices Full Body
-  useEffect(() => {
-    const savedExercises = localStorage.getItem(`fullBodyExercises_${profile}`);
-    if (savedExercises) {
-      setSelectedFullBodyExercises(JSON.parse(savedExercises));
-    }
-  }, [profile]);
+  /* ── Stats ── */
+  const allSeries = Object.values(displayPerfs).flatMap((e) => e.series || []);
+  const totalSeries = allSeries.filter((s) => !s.isWarmup).length;
+  const totalVolume = allSeries
+    .filter((s) => !s.isWarmup)
+    .reduce((acc, s) => acc + (s.charge || 0) * (s.reps || 0), 0);
+  const totalPR = allSeries.filter((s) => s.isPR).length;
 
-  // Détermination de la séance
-  // Détermination de la séance
-  let session;
-  if (selectedSession === null) {
-    session = TrainingData.find((s) => s.day === todayName);
-  } else if (selectedSession === "full-body") {
-    session = FullBodyData;
-  } else {
-    session = TrainingData.find((s) => {
-      const muscleList = s.muscles;
-      switch (selectedSession) {
-        case "pecs":
-          return muscleList.length === 1 && muscleList.includes("Pecs");
-        case "epaules":
-          return muscleList.includes("Épaules");
-        case "biceps-triceps":
-          return (
-            muscleList.length === 2 &&
-            muscleList.includes("Biceps") &&
-            muscleList.includes("Triceps")
-          );
-        case "pecs-triceps":
-          return muscleList.some((m) =>
-            ["Pecs", "Triceps", "Épaules"].includes(m)
-          );
-        case "dos-biceps":
-          return muscleList.some((m) => ["Dos", "Biceps"].includes(m));
-        default:
-          return false;
-      }
-    });
-  }
-  // Si aucune séance n'est trouvée
-  if (!session) {
-    return (
-      <div className="training-container">
-        <div className="training-infos">
-          <div className="training-date">Séance du {todayName}</div>
-          <div
-            className="training-muscle"
-            style={{ fontSize: "1.8em", color: "#666" }}
-          >
-            Aucune séance sélectionnée
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const resolveUUID = (exoName) => exerciseMap[exoName] || null;
 
-  const { muscles, exercises } = session;
-
-  // Ouverture modale
-  const openModal = (exo, mode = "add", perf = null) => {
+  /* ── Modales ── */
+  const openAdd = (exo) => {
     setSelectedExo(exo);
-    setMode(mode);
-    if (mode === "edit" && perf) {
-      setSelectedSerie(perf.serie || 1);
-      setCharge(perf.charge.toString());
-      setReps(perf.reps.toString());
-      setRpe(perf.rpe ? perf.rpe.toString() : "");
-      setIsPR(perf.isPR || false);
-      setIsWarmup(perf.isWarmup || false);
-    } else {
-      const exoPerfs = displayPerfs[exo.id] || { series: [] };
-      const effectiveSeries = exoPerfs.series.filter((s) => !s.isWarmup);
-      const nextSerie =
-        effectiveSeries.length > 0 ? effectiveSeries.length + 1 : 1;
-      setSelectedSerie(nextSerie);
-      setCharge("");
-      setReps("");
-      setRpe("");
-      setIsPR(false);
-      setIsWarmup(false);
-    }
-    setModalOpen(true);
-  };
-
-  const openActionModal = (exoId, perf) => {
-    setSelectedExo(
-      exercises[
-        Object.keys(exercises).find((muscle) =>
-          exercises[muscle].some((exo) => exo.id === exoId)
-        )
-      ].find((exo) => exo.id === exoId)
-    );
-    setSelectedPerf(perf);
-    setActionModalOpen(true);
-  };
-
-  // Soumission
-  const handleSubmit = () => {
-    if (!selectedExo) return;
-    const newPerf = {
-      serie: isWarmup ? null : selectedSerie,
-      charge: parseInt(charge) || 0,
-      reps: parseInt(reps) || 0,
-      rpe: parseInt(rpe) || 0,
-      isPR: isPR && !isWarmup,
-      isWarmup,
-    };
-    const prettyDate = today.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-
-    // Mise à jour des perfs pour la date actuelle
-    const updatedAllPerfs = { ...allPerfs };
-    const currentExoData = displayPerfs[selectedExo.id] || { series: [] };
-    const updatedSeries =
-      mode === "edit"
-        ? currentExoData.series.map((s) =>
-            s.serie === selectedSerie ? newPerf : s
-          )
-        : [...currentExoData.series, newPerf];
-
-    updatedAllPerfs[todayISO] = {
-      ...updatedAllPerfs[todayISO],
-      [selectedExo.id]: {
-        series: updatedSeries,
-        lastUpdated: todayISO,
-        dateLabel: prettyDate,
-        dayName: todayName,
-        exoName: selectedExo.name,
-      },
-    };
-
-    setAllPerfs(updatedAllPerfs);
-    setDisplayPerfs(updatedAllPerfs[todayISO]);
-    setModalOpen(false);
-    resetForm();
-  };
-
-  const resetForm = () => {
+    setMode("add");
+    const uuid = resolveUUID(exo.name);
+    const eff =
+      uuid ? (displayPerfs[uuid]?.series || []).filter((s) => !s.isWarmup) : [];
+    setSelectedSerie(eff.length + 1);
     setCharge("");
     setReps("");
     setRpe("");
     setIsPR(false);
     setIsWarmup(false);
-    setMode("add");
+    setModalOpen(true);
   };
 
-  // Suppression
-  const handleDelete = () => {
-    if (!selectedExo || !selectedPerf) return;
-    const updatedAllPerfs = { ...allPerfs };
-    const currentExoData = updatedAllPerfs[todayISO]?.[selectedExo.id];
-    if (currentExoData) {
-      updatedAllPerfs[todayISO] = {
-        ...updatedAllPerfs[todayISO],
-        [selectedExo.id]: {
-          ...currentExoData,
-          series: currentExoData.series.filter(
-            (s) => s.serie !== selectedPerf.serie
-          ),
-        },
-      };
+  const openEdit = (exo, perf) => {
+    setSelectedExo(exo);
+    setMode("edit");
+    setSelectedSerie(perf.serie || 1);
+    setCharge(String(perf.charge));
+    setReps(String(perf.reps));
+    setRpe(perf.rpe ? String(perf.rpe) : "");
+    setIsPR(perf.isPR || false);
+    setIsWarmup(perf.isWarmup || false);
+    setModalOpen(true);
+  };
+
+  const openAction = (exoName, perf) => {
+    setSelectedExo({ name: exoName });
+    setSelectedPerf(perf);
+    setActionOpen(true);
+  };
+
+  /* ── Soumettre ── */
+  const handleSubmit = async () => {
+    if (!selectedExo || !sessionId) return;
+    const exerciseUUID = resolveUUID(selectedExo.name);
+    if (!exerciseUUID) {
+      alert(`Exercice "${selectedExo.name}" introuvable en base.`);
+      return;
     }
-    setAllPerfs(updatedAllPerfs);
-    setDisplayPerfs(updatedAllPerfs[todayISO]);
-    setActionModalOpen(false);
-    setSelectedPerf(null);
+    setSaving(true);
+    try {
+      const setData = {
+        serie: isWarmup ? null : selectedSerie,
+        charge: parseFloat(charge) || 0,
+        reps: parseInt(reps) || 0,
+        rpe: parseInt(rpe) || 0,
+        isWarmup,
+        isPR,
+      };
+      if (mode === "add") {
+        const newSet = await addSet(sessionId, exerciseUUID, setData);
+        setDisplayPerfs((prev) => {
+          const cur = prev[exerciseUUID] || {
+            exoName: selectedExo.name,
+            series: [],
+          };
+          return {
+            ...prev,
+            [exerciseUUID]: {
+              ...cur,
+              series: [
+                ...cur.series,
+                {
+                  id: newSet.id,
+                  serie: newSet.set_number,
+                  charge: newSet.weight_kg,
+                  reps: newSet.reps,
+                  rpe: newSet.rpe,
+                  isWarmup: newSet.is_warmup,
+                  isPR: newSet.is_pr,
+                },
+              ],
+            },
+          };
+        });
+      } else {
+        const updated = await updateSet(selectedPerf.id, setData);
+        setDisplayPerfs((prev) => {
+          const cur = prev[exerciseUUID] || {
+            exoName: selectedExo.name,
+            series: [],
+          };
+          return {
+            ...prev,
+            [exerciseUUID]: {
+              ...cur,
+              series: cur.series.map((s) =>
+                s.id === selectedPerf.id ?
+                  {
+                    id: updated.id,
+                    serie: updated.set_number,
+                    charge: updated.weight_kg,
+                    reps: updated.reps,
+                    rpe: updated.rpe,
+                    isWarmup: updated.is_warmup,
+                    isPR: updated.is_pr,
+                  }
+                : s,
+              ),
+            },
+          };
+        });
+      }
+      setModalOpen(false);
+    } catch (err) {
+      console.error("Erreur sauvegarde :", err.message);
+      alert("Erreur lors de la sauvegarde. Vérifie ta connexion.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleEdit = () => {
-    setActionModalOpen(false);
-    openModal(selectedExo, "edit", selectedPerf);
+  /* ── Supprimer ── */
+  const handleDelete = async () => {
+    if (!selectedExo || !selectedPerf) return;
+    const exerciseUUID = resolveUUID(selectedExo.name);
+    setSaving(true);
+    try {
+      await deleteSet(selectedPerf.id);
+      if (exerciseUUID) {
+        setDisplayPerfs((prev) => {
+          const cur = prev[exerciseUUID];
+          if (!cur) return prev;
+          return {
+            ...prev,
+            [exerciseUUID]: {
+              ...cur,
+              series: cur.series.filter((s) => s.id !== selectedPerf.id),
+            },
+          };
+        });
+      }
+      setActionOpen(false);
+    } catch (err) {
+      console.error("Erreur suppression :", err.message);
+      alert("Erreur lors de la suppression.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  /* ── Chips ── */
+  const SerieChips = ({ exoName }) => {
+    const uuid = exerciseMap[exoName];
+    const series = uuid ? displayPerfs[uuid]?.series || [] : [];
+    if (!series.length)
+      return <span style={{ color: "var(--text3)", fontSize: 12 }}>—</span>;
+    return series.map((s, i) => (
+      <span
+        key={i}
+        onClick={() => openAction(exoName, s)}
+        className={`chip ${
+          s.isWarmup ? "chip--warmup"
+          : s.isPR ? "chip--pr"
+          : "chip--accent"
+        }`}
+      >
+        {s.charge}kg×{s.reps}
+      </span>
+    ));
+  };
+
+  const RpeChips = ({ exoName }) => {
+    const uuid = exerciseMap[exoName];
+    const series = uuid ? displayPerfs[uuid]?.series || [] : [];
+    if (!series.length)
+      return <span style={{ color: "var(--text3)", fontSize: 12 }}>—</span>;
+    return series.map((s, i) => (
+      <span
+        key={i}
+        onClick={() => openAction(exoName, s)}
+        className={`chip ${
+          s.isWarmup ? "chip--warmup"
+          : s.isPR ? "chip--pr"
+          : ""
+        }`}
+      >
+        {s.rpe > 0 ? s.rpe : "—"}
+      </span>
+    ));
+  };
+
+  if (loading)
+    return (
+      <div className="empty-state">
+        <i
+          className="ti ti-loader-2"
+          style={{ animation: "spin 1s linear infinite" }}
+          aria-hidden="true"
+        />
+        <p className="empty-state__sub">Chargement de la séance…</p>
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+
+  const muscleNames = Object.keys(allExercises).sort();
 
   return (
-    <div className="training-container">
-      <div className="training-infos">
-        <div className="training-date">Séance du {todayName}</div>
-        <div className="muscle-selector" onClick={() => setDrawerOpen(true)}>
-          <span className="muscle-text">
-            {selectedSession === null
-              ? muscles.join(" / ")
-              : selectedSession === "full-body"
-              ? "Full Body"
-              : selectedSession === "pecs-triceps"
-              ? "Pecs / Triceps"
-              : selectedSession === "dos-biceps"
-              ? "Dos / Biceps"
-              : selectedSession === "epaules"
-              ? "Épaules"
-              : selectedSession === "biceps-triceps"
-              ? "Biceps / Triceps"
-              : selectedSession === "pecs"
-              ? "Pecs"
-              : muscles.join(" / ")}
-          </span>
-          <span className="dropdown-arrow">▼</span>
-        </div>
+    <div>
+      {/* ── Header ── */}
+      <div className="session-meta">
+        <span className="session-meta__day">{prettyDay}</span>
+        <button className="badge badge--accent" onClick={onChangeSession}>
+          <i
+            className="ti ti-refresh"
+            style={{ fontSize: 11 }}
+            aria-hidden="true"
+          />{" "}
+          Changer
+        </button>
+      </div>
+      <div className="session-title">{activeTemplate?.name || "Séance"}</div>
 
-        {/* DRAWER POUR CHOISIR LA SÉANCE */}
-        {drawerOpen && (
-          <>
-            <div
-              className="drawer-overlay"
-              onClick={() => setDrawerOpen(false)}
-            />
-            <div className="session-drawer">
-              <div className="drawer-header">
-                <h3>Choisir une séance</h3>
-                <button onClick={() => setDrawerOpen(false)}>✕</button>
-              </div>
-              <div className="drawer-options">
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession(null);
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Séance programmée ({muscles.join(" / ")})
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("pecs-triceps");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Pecs / Triceps
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("dos-biceps");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Dos / Biceps
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("epaules");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Épaules
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("biceps-triceps");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Biceps / Triceps
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("pecs");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Pecs
-                </div>
-                <div
-                  className="drawer-option"
-                  onClick={() => {
-                    setSelectedSession("full-body");
-                    setDisplayPerfs(allPerfs[todayISO] || {});
-                    setDrawerOpen(false);
-                  }}
-                >
-                  Full Body
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+      {/* ── Stats ── */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-card__label">Séries</div>
+          <div className="stat-card__value">{totalSeries}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card__label">Volume</div>
+          <div className="stat-card__value">
+            {totalVolume >= 1000 ?
+              (totalVolume / 1000).toFixed(1)
+            : totalVolume}
+            <span>{totalVolume >= 1000 ? "t" : "kg"}</span>
+          </div>
+        </div>
+        <div className="stat-card stat-card--pr">
+          <div className="stat-card__label">PR</div>
+          <div className="stat-card__value">{totalPR}</div>
+        </div>
       </div>
 
-      {/* SÉANCE FULL BODY */}
-      {selectedSession === "full-body" ? (
-        <div className="full-body-section">
-          {/* Sélecteur pour ajouter un muscle */}
-          <div className="full-body-muscle-selector">
-            <select
-              value=""
-              onChange={(e) => {
-                const muscle = e.target.value;
-                if (muscle && !selectedFullBodyMuscles.includes(muscle)) {
-                  setSelectedFullBodyMuscles([
-                    ...selectedFullBodyMuscles,
-                    muscle,
-                  ]);
-                }
-              }}
-            >
-              <option value="">Ajouter un muscle</option>
-              {FullBodyData.muscles
-                .filter((m) => !selectedFullBodyMuscles.includes(m))
-                .map((muscle) => (
-                  <option key={muscle} value={muscle}>
-                    {muscle}
+      {/* ── Table exercices ── */}
+      {exercisesToShow.length === 0 ?
+        <div className="empty-state" style={{ padding: "32px 0" }}>
+          <i className="ti ti-barbell" aria-hidden="true" />
+          <p className="empty-state__title">Aucun exercice</p>
+          <p className="empty-state__sub">
+            {isFree ?
+              "Ajoute des exercices ci-dessous"
+            : "Configure cette séance dans l'onglet Profil"}
+          </p>
+        </div>
+      : <div className="training-table-container" style={{ marginBottom: 16 }}>
+          <table className="training-table">
+            <thead>
+              <tr>
+                <th className="col-exo">Exercice</th>
+                <th className="col-data">Charge × Reps</th>
+                <th className="col-data">RPE</th>
+                <th className="col-add"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {exercisesToShow.map((exo, i) => (
+                <tr key={exo.exercise_id || exo.id || i}>
+                  <td>
+                    <div style={{ fontWeight: 500, color: "var(--text)" }}>
+                      {exo.name}
+                    </div>
+                    {exo.muscleName && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--text3)",
+                          marginTop: 1,
+                        }}
+                      >
+                        {exo.muscleName}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <SerieChips exoName={exo.name} />
+                  </td>
+                  <td>
+                    <RpeChips exoName={exo.name} />
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <button className="btn--add" onClick={() => openAdd(exo)}>
+                      +
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      }
+
+      {/* ── Bouton ajouter (mode libre) ── */}
+      {isFree && (
+        <button
+          className="btn btn--ghost"
+          style={{ width: "100%", marginBottom: 24 }}
+          onClick={() => setAddExoDrawer(true)}
+        >
+          <i className="ti ti-plus" aria-hidden="true" /> Ajouter un exercice
+        </button>
+      )}
+
+      {/* ── Drawer ajout exercice libre ── */}
+      {addExoDrawer && (
+        <>
+          <div
+            className="drawer-overlay"
+            onClick={() => {
+              setAddExoDrawer(false);
+              setFilterMuscle("");
+            }}
+          />
+          <div
+            className="drawer"
+            style={{ maxHeight: "80vh", overflowY: "auto" }}
+          >
+            <div className="drawer-handle" />
+            <div className="drawer-header">
+              <span className="drawer-title">Ajouter un exercice</span>
+              <button
+                className="drawer-close"
+                onClick={() => {
+                  setAddExoDrawer(false);
+                  setFilterMuscle("");
+                }}
+                aria-label="Fermer"
+              >
+                <i className="ti ti-x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <select
+                value={filterMuscle}
+                onChange={(e) => setFilterMuscle(e.target.value)}
+              >
+                <option value="">Tous les muscles</option>
+                {muscleNames.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
                   </option>
                 ))}
-            </select>
-          </div>
-
-          {/* Affichage des muscles sélectionnés et de leurs exercices */}
-          {selectedFullBodyMuscles.map((muscle) => (
-            <div key={muscle} className="muscle-exercise-container">
-              <h3 className="muscle-title">{muscle}</h3>
-
-              {/* Sélecteur pour ajouter un exercice */}
-              <div className="add-exercise-section">
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const exerciseId = e.target.value;
-                    if (exerciseId) {
-                      const exercise = getExercisesForMuscle(muscle).find(
-                        (exo) => exo.id === exerciseId
-                      );
-                      if (exercise) {
-                        const currentExercises =
-                          selectedFullBodyExercises[muscle] || [];
-                        if (
-                          !currentExercises.some(
-                            (exo) => exo.id === exercise.id
-                          )
-                        ) {
-                          setSelectedFullBodyExercises({
-                            ...selectedFullBodyExercises,
-                            [muscle]: [...currentExercises, exercise],
-                          });
-                        }
-                      }
-                    }
-                  }}
-                >
-                  <option value="">Ajouter un exercice</option>
-                  {getExercisesForMuscle(muscle)
+              </select>
+            </div>
+            <div className="drawer-list">
+              {Object.entries(allExercises)
+                .filter(([muscle]) => !filterMuscle || muscle === filterMuscle)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .flatMap(([muscle, exos]) =>
+                  exos
                     .filter(
-                      (exo) =>
-                        !selectedFullBodyExercises[muscle]?.some(
-                          (selectedExo) => selectedExo.id === exo.id
-                        )
+                      (exo) => !freeExercises.some((fe) => fe.id === exo.id),
                     )
-                    .map((exo) => (
-                      <option key={exo.id} value={exo.id}>
+                    .map((exo) => ({ ...exo, muscleName: muscle })),
+                )
+                .map((exo) => (
+                  <button
+                    key={exo.id}
+                    className="drawer-item"
+                    onClick={() => {
+                      setFreeExercises((prev) => [...prev, exo]);
+                      setAddExoDrawer(false);
+                      setFilterMuscle("");
+                    }}
+                  >
+                    <span>
+                      <span style={{ color: "var(--text)", fontWeight: 500 }}>
                         {exo.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "var(--text3)",
+                          marginLeft: 8,
+                        }}
+                      >
+                        {exo.muscleName}
+                      </span>
+                    </span>
+                    <i className="ti ti-plus" aria-hidden="true" />
+                  </button>
+                ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Modale ajout / édition ── */}
+      {modalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}
+        >
+          <div className="modal-sheet">
+            <div className="modal-handle" />
+            <div className="modal-title">
+              {mode === "edit" ? "Modifier" : "Ajouter"} une série
+            </div>
+            <div className="modal-subtitle">{selectedExo?.name}</div>
+            <label className="toggle-label">
+              Échauffement
+              <input
+                type="checkbox"
+                checked={isWarmup}
+                onChange={(e) => setIsWarmup(e.target.checked)}
+              />
+            </label>
+            <label className="toggle-label" style={{ marginBottom: 20 }}>
+              Personal Record (PR)
+              <input
+                type="checkbox"
+                checked={isPR}
+                onChange={(e) => setIsPR(e.target.checked)}
+                disabled={isWarmup}
+              />
+            </label>
+            {!isWarmup && (
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label>
+                  Série n°
+                  <select
+                    value={selectedSerie}
+                    onChange={(e) => setSelectedSerie(parseInt(e.target.value))}
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
                       </option>
                     ))}
-                </select>
+                  </select>
+                </label>
               </div>
-
-              {/* Tableau des exercices sélectionnés */}
-              {selectedFullBodyExercises[muscle]?.length > 0 && (
-                <table className="training-table">
-                  <thead>
-                    <tr>
-                      <th>Exercice</th>
-                      <th>Charge</th>
-                      <th>Reps</th>
-                      <th>RPE</th>
-                      <th>Ajouter</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedFullBodyExercises[muscle].map((exo) => (
-                      <tr key={exo.id}>
-                        <td>{exo.name}</td>
-                        <td>
-                          {displayPerfs[exo.id]?.series.map((s) => (
-                            <div
-                              key={`${exo.id}-${s.serie || "warmup"}`}
-                              onClick={() => openActionModal(exo.id, s)}
-                              style={{
-                                cursor: "pointer",
-                                color: s.isWarmup
-                                  ? "#ff8c00"
-                                  : s.isPR
-                                  ? "#00ff00"
-                                  : "#4fc3f7",
-                              }}
-                            >
-                              {s.charge}kg
-                            </div>
-                          ))}
-                        </td>
-                        <td>
-                          {displayPerfs[exo.id]?.series.map((s) => (
-                            <div
-                              key={`${exo.id}-${s.serie || "warmup"}`}
-                              onClick={() => openActionModal(exo.id, s)}
-                              style={{
-                                cursor: "pointer",
-                                color: s.isWarmup
-                                  ? "#ff8c00"
-                                  : s.isPR
-                                  ? "#00ff00"
-                                  : "#4fc3f7",
-                              }}
-                            >
-                              {s.reps}
-                            </div>
-                          ))}
-                        </td>
-                        <td>
-                          {displayPerfs[exo.id]?.series.map((s) => (
-                            <div
-                              key={`${exo.id}-${s.serie || "warmup"}`}
-                              onClick={() => openActionModal(exo.id, s)}
-                              style={{
-                                cursor: "pointer",
-                                color: s.isWarmup
-                                  ? "#ff8c00"
-                                  : s.isPR
-                                  ? "#00ff00"
-                                  : "#4fc3f7",
-                              }}
-                            >
-                              {s.rpe || "-"}
-                            </div>
-                          ))}
-                        </td>
-                        <td>
-                          <div className="add-perf-btn-container">
-                            <button
-                              className="add-perf-btn"
-                              onClick={() => openModal(exo)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        /* SÉANCES CLASSIQUES */
-        <div className="training-tables-scroll">
-          {muscles.map((muscle) => (
-            <div key={muscle} className="training-table-container">
-              <h3 className="muscle-title">{muscle}</h3>
-              <table className="training-table">
-                <thead>
-                  <tr>
-                    <th>Exercice</th>
-                    <th>Charge</th>
-                    <th>Reps</th>
-                    <th>RPE</th>
-                    <th>Ajouter</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {exercises[muscle]?.map((exo) => (
-                    <tr key={exo.id}>
-                      <td>{exo.name}</td>
-                      <td>
-                        {displayPerfs[exo.id]?.series.map((s) => (
-                          <div
-                            key={`${exo.id}-${s.serie || "warmup"}`}
-                            onClick={() => openActionModal(exo.id, s)}
-                            style={{
-                              cursor: "pointer",
-                              color: s.isWarmup
-                                ? "#ff8c00"
-                                : s.isPR
-                                ? "#00ff00"
-                                : "#4fc3f7",
-                            }}
-                          >
-                            {s.charge}kg
-                          </div>
-                        ))}
-                      </td>
-                      <td>
-                        {displayPerfs[exo.id]?.series.map((s) => (
-                          <div
-                            key={`${exo.id}-${s.serie || "warmup"}`}
-                            onClick={() => openActionModal(exo.id, s)}
-                            style={{
-                              cursor: "pointer",
-                              color: s.isWarmup
-                                ? "#ff8c00"
-                                : s.isPR
-                                ? "#00ff00"
-                                : "#4fc3f7",
-                            }}
-                          >
-                            {s.reps}
-                          </div>
-                        ))}
-                      </td>
-                      <td>
-                        {displayPerfs[exo.id]?.series.map((s) => (
-                          <div
-                            key={`${exo.id}-${s.serie || "warmup"}`}
-                            onClick={() => openActionModal(exo.id, s)}
-                            style={{
-                              cursor: "pointer",
-                              color: s.isWarmup
-                                ? "#ff8c00"
-                                : s.isPR
-                                ? "#00ff00"
-                                : "#4fc3f7",
-                            }}
-                          >
-                            {s.rpe || "-"}
-                          </div>
-                        ))}
-                      </td>
-                      <td>
-                        <div className="add-perf-btn-container">
-                          <button
-                            className="add-perf-btn"
-                            onClick={() => openModal(exo)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* MODALES */}
-      {modalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>
-              {mode === "edit" ? "Modifier" : "Renseigner"} une performance
-            </h2>
-            <p>Exercice : {selectedExo?.name}</p>
-            <div className="modal-form">
-              <label className="warmup-label">
-                <span>Échauffement</span>
-                <input
-                  type="checkbox"
-                  checked={isWarmup}
-                  onChange={(e) => setIsWarmup(e.target.checked)}
-                />
-              </label>
-              <label>
-                Série {isWarmup ? "(ignorée)" : ":"}
-                <select
-                  value={selectedSerie}
-                  onChange={(e) => setSelectedSerie(parseInt(e.target.value))}
-                  disabled={isWarmup}
-                  style={{ opacity: isWarmup ? 0.5 : 1 }}
-                >
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Charge (kg) :
-                <div style={{ display: "flex", alignItems: "center" }}>
+            )}
+            <div className="form-row-3">
+              <div className="form-group">
+                <label>
+                  Charge (kg)
                   <input
                     type="number"
-                    inputMode="decimal"
-                    pattern="[0-9]*"
                     value={charge}
                     onChange={(e) => setCharge(e.target.value)}
-                    style={{ flex: 1 }}
                     min="0"
                     step="0.5"
+                    placeholder="0"
                   />
-                  <span style={{ marginLeft: "10px" }}>kg</span>
-                </div>
-              </label>
-              <label>
-                Reps :
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  pattern="[0-9]*"
-                  value={reps}
-                  onChange={(e) => setReps(e.target.value)}
-                  min="0"
-                />
-              </label>
-              <label>
-                RPE (1-10) :
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={rpe}
-                  onChange={(e) => setRpe(e.target.value)}
-                  min="1"
-                  max="10"
-                />
-              </label>
-              <label className="pr-label">
-                PR
-                <input
-                  type="checkbox"
-                  checked={isPR}
-                  onChange={(e) => setIsPR(e.target.checked)}
-                />
-              </label>
-              <div className="modal-actions">
-                <button onClick={() => setModalOpen(false)}>Annuler</button>
-                <button onClick={handleSubmit}>Valider</button>
+                </label>
               </div>
+              <div className="form-group">
+                <label>
+                  Reps
+                  <input
+                    type="number"
+                    value={reps}
+                    onChange={(e) => setReps(e.target.value)}
+                    min="0"
+                    placeholder="0"
+                  />
+                </label>
+              </div>
+              <div className="form-group">
+                <label>
+                  RPE
+                  <input
+                    type="number"
+                    value={rpe}
+                    onChange={(e) => setRpe(e.target.value)}
+                    min="1"
+                    max="10"
+                    placeholder="—"
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn--ghost"
+                onClick={() => setModalOpen(false)}
+                disabled={saving}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? "Sauvegarde…" : "Valider"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {actionModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-content--actions">
-            <h2 style={{ margin: "0" }}>
-              Actions pour la série {selectedPerf?.serie}
-            </h2>
+      {/* ── Modale actions ── */}
+      {actionOpen && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setActionOpen(false)}
+        >
+          <div className="modal-sheet">
+            <div className="modal-handle" />
+            <div className="modal-title">
+              {selectedPerf?.isWarmup ?
+                "Échauffement"
+              : `Série ${selectedPerf?.serie}`}
+            </div>
+            <div className="modal-subtitle">
+              {selectedExo?.name} · {selectedPerf?.charge}kg ×{" "}
+              {selectedPerf?.reps} reps
+              {selectedPerf?.rpe > 0 && ` · RPE ${selectedPerf.rpe}`}
+              {selectedPerf?.isPR && " · 🏆 PR"}
+            </div>
             <div className="modal-actions">
-              <button onClick={handleEdit}>Modifier</button>
-              <button onClick={handleDelete}>Supprimer</button>
-              <button onClick={() => setActionModalOpen(false)}>Annuler</button>
+              <button
+                className="btn btn--ghost"
+                onClick={() => {
+                  setActionOpen(false);
+                  openEdit(selectedExo, selectedPerf);
+                }}
+              >
+                <i className="ti ti-pencil"> Modifier</i>
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={handleDelete}
+                disabled={saving}
+              >
+                <i className="ti ti-trash" aria-hidden="true" />{" "}
+                {saving ? "…" : "Supprimer"}
+              </button>
+            </div>
+            <div
+              className="modal-actions modal-actions--single"
+              style={{ marginTop: 10 }}
+            >
+              <button
+                className="btn btn--ghost"
+                onClick={() => setActionOpen(false)}
+              >
+                Annuler
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 };
