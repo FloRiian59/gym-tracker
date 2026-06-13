@@ -13,29 +13,25 @@ html {
 }
 
 /* ─── THEMES ─────────────────────────────────────────── */
-
-/* FIX : --border était 0.07 opacity → invisible sur dark bg.
-         --bg2/bg3 légèrement relevés pour que drawer contraste avec --bg.
-         --text3 éclairci pour que btn--add "+" soit lisible. */
 :root,
 [data-theme="premium"] {
-  --bg: #0c0c10;
-  --bg2: #18181f;
-  --bg3: #22222e;
-  --bg4: #2c2c3a;
-  --border: rgba(255, 255, 255, 0.12);
-  --border2: rgba(255, 255, 255, 0.2);
-  --text: #f0f0f6;
-  --text2: #7a7a96;
-  --text3: #5e5e7a;
-  --accent: #d4af37;
-  --accent-bg: rgba(212, 175, 55, 0.1);
-  --accent-border: rgba(212, 175, 55, 0.3);
-  --pr: #22c55e;
-  --pr-bg: rgba(34, 197, 94, 0.1);
-  --warmup: #f59e0b;
-  --warmup-bg: rgba(245, 158, 11, 0.1);
-  --danger: #ef4444;
+  --bg: #0c0c0c;
+  --bg2: #141414;
+  --bg3: #1e1e1e;
+  --bg4: #ffba25;
+  --border: rgba(255, 255, 255, 0.1);
+  --border2: rgba(255, 255, 255, 0.18);
+  --text: #f5f5f5;
+  --text2: #a0a0a0;
+  --text3: #707070;
+  --accent: #ff9735;
+  --accent-bg: rgba(255, 107, 53, 0.12);
+  --accent-border: rgba(255, 107, 53, 0.3);
+  --pr: #31ff4c;
+  --pr-bg: #35ff5034;
+  --warmup: #ffa500;
+  --warmup-bg: rgba(255, 165, 0, 0.1);
+  --danger: #ff3333;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -48,23 +44,23 @@ html {
 }
 
 [data-theme="nike"] {
-  --bg: #0a0a0a;
-  --bg2: #141414;
-  --bg3: #1e1e1e;
-  --bg4: #282828;
+  --bg: #000000f8;
+  --bg2: #161616;
+  --bg3: #222222;
+  --bg4: #ff0000;
   --border: rgba(255, 255, 255, 0.1);
   --border2: rgba(255, 255, 255, 0.18);
   --text: #f5f5f5;
-  --text2: #737373;
-  --text3: #585858;
+  --text2: #a0a0a0;
+  --text3: #707070;
   --accent: #e11d27;
-  --accent-bg: rgba(225, 29, 39, 0.1);
+  --accent-bg: rgba(225, 29, 39, 0.12);
   --accent-border: rgba(225, 29, 39, 0.3);
-  --pr: #22c55e;
-  --pr-bg: rgba(34, 197, 94, 0.1);
-  --warmup: #f59e0b;
-  --warmup-bg: rgba(245, 158, 11, 0.1);
-  --danger: #ef4444;
+  --pr: #ff0000;
+  --pr-bg: rgba(255, 0, 0, 0.1);
+  --warmup: #ff6b35;
+  --warmup-bg: rgba(255, 107, 53, 0.1);
+  --danger: #ff3333;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -77,22 +73,22 @@ html {
 }
 
 [data-theme="neon"] {
-  --bg: #07070f;
-  --bg2: #0e0e1c;
-  --bg3: #141428;
-  --bg4: #1c1c35;
-  --border: rgba(168, 85, 247, 0.18);
-  --border2: rgba(168, 85, 247, 0.32);
-  --text: #eeeeff;
-  --text2: #6666aa;
-  --text3: #5050aa;
+  --bg: #12121c;
+  --bg2: #1a1a28;
+  --bg3: #222238;
+  --bg4: #a855f7;
+  --border: rgba(168, 85, 247, 0.25);
+  --border2: rgba(168, 85, 247, 0.4);
+  --text: #ffffff;
+  --text2: #b0b0ff;
+  --text3: #8a8aff;
   --accent: #a855f7;
-  --accent-bg: rgba(168, 85, 247, 0.1);
-  --accent-border: rgba(168, 85, 247, 0.3);
+  --accent-bg: rgba(168, 85, 247, 0.15);
+  --accent-border: rgba(168, 85, 247, 0.4);
   --pr: #10b981;
-  --pr-bg: rgba(16, 185, 129, 0.1);
+  --pr-bg: rgba(16, 185, 129, 0.15);
   --warmup: #f59e0b;
-  --warmup-bg: rgba(245, 158, 11, 0.1);
+  --warmup-bg: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -123,6 +119,68 @@ html {
   --warmup: #d97706;
   --warmup-bg: rgba(217, 119, 6, 0.1);
   --danger: #dc2626;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --font-display: "Syne", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --header-h: 58px;
+  --bottom-h: 66px;
+  --transition: 0.18s ease;
+}
+
+[data-theme="pink"] {
+  --bg: #fabef0;
+  --bg2: #f3b0fa;
+  --bg3: #ff97d7;
+  --bg4: #ff81f4;
+  --border: rgba(255, 255, 255, 0.2);
+  --border2: rgba(255, 255, 255, 0.3);
+  --text: #1a1a2e;
+  --text2: #4a4a6a;
+  --text3: #6a6a8a;
+  --accent: #e76fb5;
+  --accent-bg: rgba(255, 10, 120, 0.1);
+  --accent-border: rgba(255, 10, 120, 0.25);
+  --pr: #9d4edd;
+  --pr-bg: rgba(157, 78, 221, 0.1);
+  --pr-border: rgba(157, 78, 221, 0.2);
+  --warmup: #ff69b4;
+  --warmup-bg: rgba(255, 105, 180, 0.1);
+  --warmup-border: rgba(255, 105, 180, 0.2);
+  --danger: #e60041;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --font-display: "Syne", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --header-h: 58px;
+  --bottom-h: 66px;
+  --transition: 0.18s ease;
+}
+
+[data-theme="dark"] {
+  --bg: #050505;
+  --bg2: #131313;
+  --bg3: #1a1a1a;
+  --bg4: #757575;
+  --border: rgba(255, 255, 255, 0.1);
+  --border2: rgba(255, 255, 255, 0.18);
+  --text: #e0e0e0;
+  --text2: #a0a0a0;
+  --text3: #707070;
+  --accent: #e2e2e2;
+  --accent-bg: rgba(255, 255, 255, 0.1);
+  --accent-border: rgba(255, 255, 255, 0.25);
+  --pr: #22c55e;
+  --pr-bg: rgba(34, 197, 94, 0.1);
+  --pr-border: rgba(34, 197, 94, 0.2);
+  --warmup: #f59e0b;
+  --warmup-bg: rgba(245, 158, 11, 0.1);
+  --warmup-border: rgba(245, 158, 11, 0.2);
+  --danger: #ef4444;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -237,7 +295,8 @@ h3 {
 
 /* chips séries */
 .chip {
-  display: inline-block;
+  display: block;
+  min-width: 100%;
   font-size: 11px;
   font-weight: 500;
   padding: 2px 6px;
@@ -516,7 +575,6 @@ label {
 }
 
 /* ─── TABLE ──────────────────────────────────────────── */
-/* FIX : wrapper avec bg2 + border2 pour délimiter visuellement le tableau */
 .training-table-container {
   background: var(--bg2);
   border: 0.5px solid var(--border2);
@@ -564,13 +622,13 @@ label {
   background: var(--bg3);
 }
 .col-exo {
-  width: 34%;
+  width: 30%;
 }
 .col-data {
   width: 22%;
 }
 .col-add {
-  width: 10%;
+  width: 12%;
 }
 
 /* ─── MODAL (bottom sheet) ───────────────────────────── */
@@ -628,7 +686,6 @@ label {
 }
 
 /* ─── DRAWER (bottom sheet) ──────────────────────────── */
-/* FIX : box-shadow forte pour que le drawer se détache du fond dark */
 .drawer-overlay {
   position: fixed;
   inset: 0;
@@ -1046,4 +1103,346 @@ header {
 .empty-state__sub {
   font-size: 13px;
   color: var(--text3);
+}
+
+/* ─── AUTH PAGE ─────────────────────────────────────── */
+
+.auth-container {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px 20px;
+}
+
+.logo-section {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.logo-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.logo-subtitle {
+  font-size: 14px;
+  color: var(--text3);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-xl);
+  padding: 28px 24px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.nav-segment {
+  margin-bottom: 24px;
+  display: flex;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-md);
+  background: var(--bg3);
+}
+
+.nav-segment button {
+  flex: 1;
+  font-size: 16px;
+  padding: 6px 0;
+}
+
+.nav-segment button:hover {
+  background: var(--bg4);
+  border-radius: var(--radius-md);
+}
+
+.nav-segment button.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: transparent;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+}
+
+.nav-segment button:first-child.active {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.nav-segment button:last-child.active {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group label {
+  display: block;
+}
+
+.form-group input {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 0.5px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.success-message {
+  background: var(--pr-bg);
+  border: 0.5px solid rgba(34, 197, 94, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--pr);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+
+header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border2);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header__logo {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: default;
+}
+
+.header__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  border: 1.5px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition);
+}
+
+.header__avatar--active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* ─── APP LOADER ─────────────────────────────────────── */
+.app-loader {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.app-loader .ti-loader-2 {
+  font-size: 32px;
+  color: var(--accent);
+  animation: spin 1s linear infinite;
+}
+
+/* ─── DASHBOARD ──────────────────────────────────────── */
+.dashboard-greeting {
+  margin-bottom: 24px;
+}
+
+.dashboard-greeting__sub {
+  font-size: 13px;
+  color: var(--text3);
+  margin-bottom: 2px;
+}
+
+.dashboard-section {
+  margin-bottom: 24px;
+}
+
+.dashboard-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dashboard-section__count {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.dashboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-md);
+}
+
+.dashboard-card__title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.dashboard-card__sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.dashboard-card__value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.dashboard-card__value--pr {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pr);
+}
+
+/* ─── WEEK GRID ──────────────────────────────────────── */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 14px 12px;
+}
+
+.week-grid__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-grid__label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.week-grid__label--today {
+  color: var(--accent);
+}
+
+.week-grid__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1.5px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+
+.week-grid__dot--done {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.week-grid__dot--done .ti-check {
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.week-grid__dot--today {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.week-grid__dot--future {
+  opacity: 0.35;
 }

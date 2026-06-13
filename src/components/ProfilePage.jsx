@@ -12,16 +12,18 @@ import {
   getExercisesGrouped,
   getMuscles,
   createExercise,
+  deleteExercise,
 } from "../queries";
 
 const THEMES = [
-  { id: "premium", label: "Premium", swatch: "#d4af37" },
+  { id: "minimal", label: "Minimal", swatch: "#e2e2e2" },
+  { id: "dark", label: "Dark", swatch: "#09090b" },
+  { id: "premium", label: "Premium", swatch: "#ff9735" },
   { id: "nike", label: "Nike", swatch: "#e11d27" },
   { id: "neon", label: "Néon", swatch: "#a855f7" },
-  { id: "minimal", label: "Minimal", swatch: "#f5f5f5" },
+  { id: "pink", label: "Pink", swatch: "#ee5dc2" },
 ];
 
-/* ── Helper : réorganiser les exercices d'un template ── */
 const reorderExercises = async (templateId, exercises) => {
   await Promise.all(
     exercises.map((exo, i) =>
@@ -56,7 +58,6 @@ const TemplateDetail = ({
 
   const muscleNames = Object.keys(allExercises).sort();
   const alreadyAdded = new Set(exercises.map((e) => e.exercise_id));
-
   const availableExos = Object.entries(allExercises)
     .filter(([muscle]) => !filterMuscle || muscle === filterMuscle)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -418,7 +419,6 @@ const TemplateDetail = ({
                 <i className="ti ti-x" aria-hidden="true" />
               </button>
             </div>
-
             {showNewExo ?
               <div style={{ marginBottom: 16 }}>
                 <div
@@ -435,23 +435,23 @@ const TemplateDetail = ({
                 </div>
                 <div className="form-group" style={{ marginBottom: 10 }}>
                   <label>
-                    Nom de l'exercice
+                    Nom
                     <input
                       value={newExoName}
                       onChange={(e) => setNewExoName(e.target.value)}
-                      placeholder="ex: Curl Araignée, Hip Thrust..."
+                      placeholder="ex: Hip Thrust…"
                       autoFocus
                     />
                   </label>
                 </div>
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label>
-                    Groupe musculaire
+                    Muscle
                     <select
                       value={newExoMuscle}
                       onChange={(e) => setNewExoMuscle(e.target.value)}
                     >
-                      <option value="">Choisir un muscle…</option>
+                      <option value="">Choisir…</option>
                       {muscles.map((m) => (
                         <option key={m.id} value={m.name}>
                           {m.name}
@@ -505,7 +505,6 @@ const TemplateDetail = ({
                 <i className="ti ti-chevron-right" aria-hidden="true" />
               </button>
             }
-
             <div style={{ marginBottom: 12 }}>
               <select
                 value={filterMuscle}
@@ -519,7 +518,6 @@ const TemplateDetail = ({
                 ))}
               </select>
             </div>
-
             <div
               className="drawer-list"
               style={{ marginBottom: selected.size > 0 ? 80 : 0 }}
@@ -580,7 +578,6 @@ const TemplateDetail = ({
                 );
               })}
             </div>
-
             {selected.size > 0 && (
               <div
                 style={{
@@ -611,8 +608,198 @@ const TemplateDetail = ({
   );
 };
 
+/* ─── Sous-page : gestion des exercices ─────────────────── */
+const ExercisesPage = ({ allExercises, muscles, onBack, onUpdated }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [newExoName, setNewExoName] = useState("");
+  const [newExoMuscle, setNewExoMuscle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [filterMuscle, setFilterMuscle] = useState("");
+
+  const handleCreate = async () => {
+    if (!newExoName.trim() || !newExoMuscle) return;
+    setCreating(true);
+    try {
+      const muscleEntry = muscles.find((m) => m.name === newExoMuscle);
+      if (!muscleEntry) throw new Error("Muscle introuvable");
+      await createExercise(newExoName, muscleEntry.id);
+      onUpdated();
+      setNewExoName("");
+      setNewExoMuscle("");
+      setShowForm(false);
+    } catch (err) {
+      console.error("Erreur création :", err.message);
+      alert("Erreur lors de la création.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (exo) => {
+    if (!window.confirm(`Supprimer "${exo.name}" ?`)) return;
+    try {
+      await deleteExercise(exo.id);
+      onUpdated();
+    } catch (err) {
+      console.error("Erreur suppression :", err.message);
+      alert("Erreur lors de la suppression.");
+    }
+  };
+
+  const muscleNames = Object.keys(allExercises).sort();
+  const filtered = Object.entries(allExercises)
+    .filter(([muscle]) => !filterMuscle || muscle === filterMuscle)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  return (
+    <div>
+      <div className="session-meta" style={{ marginBottom: 4 }}>
+        <button
+          className="btn btn--ghost"
+          style={{ padding: "6px 10px", fontSize: 13 }}
+          onClick={onBack}
+        >
+          <i className="ti ti-arrow-left" aria-hidden="true" /> Retour
+        </button>
+      </div>
+      <div className="session-title">Mes exercices</div>
+
+      {showForm ?
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--text3)",
+              textTransform: "uppercase",
+              letterSpacing: ".06em",
+              marginBottom: 12,
+            }}
+          >
+            Nouvel exercice
+          </div>
+          <div className="form-group" style={{ marginBottom: 10 }}>
+            <label>
+              Nom
+              <input
+                value={newExoName}
+                onChange={(e) => setNewExoName(e.target.value)}
+                placeholder="ex: Hip Thrust, Face Pull…"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              />
+            </label>
+          </div>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>
+              Groupe musculaire
+              <select
+                value={newExoMuscle}
+                onChange={(e) => setNewExoMuscle(e.target.value)}
+              >
+                <option value="">Choisir un muscle…</option>
+                {muscles.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1 }}
+              onClick={handleCreate}
+              disabled={creating || !newExoName.trim() || !newExoMuscle}
+            >
+              {creating ? "Création…" : "Créer"}
+            </button>
+            <button
+              className="btn btn--ghost"
+              onClick={() => {
+                setShowForm(false);
+                setNewExoName("");
+                setNewExoMuscle("");
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      : <button
+          className="btn btn--ghost"
+          style={{ width: "100%", marginBottom: 16 }}
+          onClick={() => setShowForm(true)}
+        >
+          <i className="ti ti-plus" aria-hidden="true" /> Créer un exercice
+        </button>
+      }
+
+      <div style={{ marginBottom: 16 }}>
+        <select
+          value={filterMuscle}
+          onChange={(e) => setFilterMuscle(e.target.value)}
+        >
+          <option value="">Tous les muscles</option>
+          {muscleNames.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filtered.map(([muscle, exos]) => (
+        <div key={muscle} style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 8 }}>{muscle}</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {exos.map((exo) => (
+              <div
+                key={exo.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  background: "var(--bg2)",
+                  border: "0.5px solid var(--border2)",
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "var(--text)",
+                  }}
+                >
+                  {exo.name}
+                </span>
+                <button
+                  className="btn--icon"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    color: "var(--danger)",
+                    borderColor: "rgba(239,68,68,.25)",
+                  }}
+                  onClick={() => handleDelete(exo)}
+                  aria-label="Supprimer"
+                >
+                  <i className="ti ti-trash" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 /* ─── Page principale Profil ────────────────────────────── */
-const ProfilePage = ({ theme, onThemeChange, user }) => {
+const ProfilePage = ({ theme, onThemeChange, user, onBack }) => {
   const [profile, setProfile] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [allExercises, setAllExercises] = useState({});
@@ -626,6 +813,14 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
   const [creating, setCreating] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
+  // Données corps — initialisées à null pour distinguer "pas encore chargé" de "vide"
+  const [gender, setGender] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [restTime, setRestTime] = useState("90");
+  const [savingBody, setSavingBody] = useState(false);
+  const [bodySaved, setBodySaved] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -636,10 +831,17 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
         getMuscles(),
       ]);
       setProfile(prof);
-      setUsername(prof.username);
+      setUsername(prof.username || "");
       setTemplates(tpls);
       setAllExercises(exos);
       setMuscles(musc);
+
+      // FIX : on vérifie explicitement null/undefined pour ne pas afficher "null"
+      setGender(prof.gender ?? "");
+      // height_cm et weight_kg sont des nombres, on les convertit seulement s'ils existent
+      setHeightCm(prof.height_cm != null ? String(prof.height_cm) : "");
+      setWeightKg(prof.weight_kg != null ? String(prof.weight_kg) : "");
+      setRestTime(prof.rest_time ?? "90");
     } catch (err) {
       console.error("Erreur chargement profil :", err.message);
     } finally {
@@ -656,8 +858,12 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
     setTemplates(tpls);
   };
   const refreshExercises = async () => {
-    const exos = await getExercisesGrouped();
+    const [exos, tpls] = await Promise.all([
+      getExercisesGrouped(),
+      getTemplates(),
+    ]);
     setAllExercises(exos);
+    setTemplates(tpls);
   };
 
   const handleSaveName = async () => {
@@ -667,13 +873,39 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
     }
     setSavingName(true);
     try {
-      const updated = await updateProfile(profile.id, username);
+      const updated = await updateProfile(profile.id, {
+        username: username.trim(),
+      });
       setProfile(updated);
       setEditingName(false);
     } catch (err) {
       console.error("Erreur mise à jour profil :", err.message);
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const handleSaveBody = async () => {
+    setSavingBody(true);
+    try {
+      const updated = await updateProfile(profile.id, {
+        gender: gender || null,
+        height_cm: heightCm ? parseInt(heightCm) : null,
+        weight_kg: weightKg ? parseFloat(weightKg) : null,
+        rest_time: restTime,
+      });
+      setProfile(updated);
+      // Re-sync les states depuis la réponse de la base pour être sûr
+      setGender(updated.gender ?? "");
+      setHeightCm(updated.height_cm != null ? String(updated.height_cm) : "");
+      setWeightKg(updated.weight_kg != null ? String(updated.weight_kg) : "");
+      setRestTime(updated.rest_time ?? "90");
+      setBodySaved(true);
+      setTimeout(() => setBodySaved(false), 2000);
+    } catch (err) {
+      console.error("Erreur mise à jour corps :", err.message);
+    } finally {
+      setSavingBody(false);
     }
   };
 
@@ -692,12 +924,10 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
     }
   };
 
-  /* ── Déconnexion ── */
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
       await supabase.auth.signOut();
-      // App.jsx détecte automatiquement la déconnexion via onAuthStateChange
     } catch (err) {
       console.error("Erreur déconnexion :", err.message);
       setLoggingOut(false);
@@ -711,6 +941,22 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
     .join("")
     .toUpperCase();
 
+  /* ── Résumé des données corps pour l'affichage ── */
+  const hasBodyData =
+    profile?.weight_kg != null || profile?.height_cm != null || profile?.gender;
+  const bodyInfo =
+    hasBodyData ?
+      [
+        profile?.gender === "male" ? "Homme"
+        : profile?.gender === "female" ? "Femme"
+        : null,
+        profile?.height_cm ? `${profile.height_cm} cm` : null,
+        profile?.weight_kg ? `${profile.weight_kg} kg` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
   if (loading)
     return (
       <div className="empty-state">
@@ -722,6 +968,19 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
         <p className="empty-state__sub">Chargement…</p>
         <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       </div>
+    );
+
+  if (subpage === "exercises")
+    return (
+      <ExercisesPage
+        allExercises={allExercises}
+        muscles={muscles}
+        onBack={() => {
+          setSubpage(null);
+          refreshExercises();
+        }}
+        onUpdated={refreshExercises}
+      />
     );
 
   if (subpage?.template) {
@@ -744,13 +1003,23 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
 
   return (
     <div>
-      <div className="session-title">Profil</div>
+      {/* ── Header retour ── */}
+      <div className="session-meta" style={{ marginBottom: 20 }}>
+        <button
+          className="btn btn--ghost"
+          style={{ padding: "6px 10px", fontSize: 13 }}
+          onClick={onBack}
+        >
+          <i className="ti ti-arrow-left" aria-hidden="true" /> Retour
+        </button>
+        <div className="session-title" style={{ marginBottom: 0 }}>
+          Profil
+        </div>
+      </div>
 
       {/* ── Mon compte ── */}
       <div style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 16 }}>Mon compte</h3>
-
-        {/* Avatar + infos */}
         <div
           style={{
             display: "flex",
@@ -789,7 +1058,6 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
           </div>
         </div>
 
-        {/* Nom d'utilisateur */}
         <div className="card" style={{ marginBottom: 10 }}>
           <div
             style={{
@@ -868,7 +1136,6 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
           </div>
         </div>
 
-        {/* Email */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div
             style={{
@@ -903,7 +1170,6 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
           </div>
         </div>
 
-        {/* Déconnexion */}
         <button
           className="btn btn--danger"
           style={{ width: "100%" }}
@@ -926,6 +1192,121 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
         </button>
       </div>
 
+      {/* ── Mon corps ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <h3>Mon corps</h3>
+
+          {bodyInfo && (
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--accent)",
+                background: "var(--accent-bg)",
+                padding: "3px 8px",
+                borderRadius: "var(--radius-sm)",
+                border: "0.5px solid var(--accent-border)",
+              }}
+            >
+              {bodyInfo}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16 }}>
+          *Les informations telles que la taille, le poids ou le genre nous
+          aident à fournir une estimation plus personnalisée des calories
+          brûlées en fin de séance. Cette valeur reste indicative et ne peut
+          être parfaitement exacte, mais elle permet d'obtenir une vision
+          globale de l'énergie dépensée pendant l'entraînement.
+        </p>
+
+        <div className="card">
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>
+              Genre
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="">Non précisé</option>
+                <option value="male">Homme</option>
+                <option value="female">Femme</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="form-row" style={{ marginBottom: 16 }}>
+            <div className="form-group">
+              <label>
+                Taille (cm)
+                <input
+                  type="number"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  placeholder="ex: 178"
+                  min="100"
+                  max="250"
+                />
+              </label>
+            </div>
+            <div className="form-group">
+              <label>
+                Poids (kg)
+                <input
+                  type="number"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  placeholder="ex: 75"
+                  min="30"
+                  max="300"
+                  step="0.1"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 20 }}>
+            <label>
+              Temps de repos habituel
+              <select
+                value={restTime}
+                onChange={(e) => setRestTime(e.target.value)}
+              >
+                <option value="90">Court — 1min30</option>
+                <option value="120">Moyen — 2min</option>
+                <option value="180">Long — 3min+</option>
+              </select>
+            </label>
+          </div>
+
+          <button
+            className="btn btn--primary"
+            style={{ width: "100%" }}
+            onClick={handleSaveBody}
+            disabled={savingBody}
+          >
+            {bodySaved ?
+              <>
+                <i className="ti ti-check" aria-hidden="true" /> Sauvegardé !
+              </>
+            : savingBody ?
+              "Sauvegarde…"
+            : <>
+                <i className="ti ti-device-floppy" aria-hidden="true" />{" "}
+                Sauvegarder
+              </>
+            }
+          </button>
+        </div>
+      </div>
+
       {/* ── Apparence ── */}
       <div style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 16 }}>Apparence</h3>
@@ -944,7 +1325,7 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
       </div>
 
       {/* ── Mes séances ── */}
-      <div>
+      <div style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 16 }}>Mes séances</h3>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <input
@@ -968,7 +1349,6 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
             }
           </button>
         </div>
-
         {templates.length === 0 ?
           <div className="empty-state" style={{ padding: "32px 0" }}>
             <i className="ti ti-layout-list" aria-hidden="true" />
@@ -1012,6 +1392,33 @@ const ProfilePage = ({ theme, onThemeChange, user }) => {
             ))}
           </div>
         }
+      </div>
+
+      {/* ── Mes exercices ── */}
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 16 }}>Mes exercices</h3>
+        <button className="drawer-item" onClick={() => setSubpage("exercises")}>
+          <span
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 3,
+            }}
+          >
+            <span
+              style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}
+            >
+              Gérer mes exercices
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text3)" }}>
+              {Object.values(allExercises).flat().length} exercice
+              {Object.values(allExercises).flat().length > 1 ? "s" : ""} au
+              total
+            </span>
+          </span>
+          <i className="ti ti-chevron-right" aria-hidden="true" />
+        </button>
       </div>
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>

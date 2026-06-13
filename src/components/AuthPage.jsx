@@ -52,33 +52,11 @@ const AuthPage = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg)",
-        padding: "24px 20px",
-      }}
-    >
+    <div className="auth-container">
       {/* Logo */}
-      <div style={{ marginBottom: 40, textAlign: "center" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 28,
-            fontWeight: 700,
-            letterSpacing: ".06em",
-            textTransform: "uppercase",
-            color: "var(--accent)",
-            marginBottom: 8,
-          }}
-        >
-          Gym Tracker
-        </div>
-        <div style={{ fontSize: 14, color: "var(--text3)" }}>
+      <div className="logo-section">
+        <div className="logo-title">Gym Tracker</div>
+        <div className="logo-subtitle">
           {mode === "login" ?
             "Content de te revoir 💪"
           : "Crée ton compte gratuitement"}
@@ -86,19 +64,9 @@ const AuthPage = () => {
       </div>
 
       {/* Carte */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          background: "var(--bg2)",
-          border: "0.5px solid var(--border2)",
-          borderRadius: "var(--radius-xl)",
-          padding: "28px 24px",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.40)",
-        }}
-      >
+      <div className="auth-card">
         {/* Toggle login / signup */}
-        <div className="nav-segment" style={{ marginBottom: 24 }}>
+        <div className="nav-segment">
           <button
             className={mode === "login" ? "active" : ""}
             onClick={() => {
@@ -106,7 +74,6 @@ const AuthPage = () => {
               setError(null);
               setSuccess(null);
             }}
-            style={{ flex: 1 }}
           >
             Connexion
           </button>
@@ -117,14 +84,13 @@ const AuthPage = () => {
               setError(null);
               setSuccess(null);
             }}
-            style={{ flex: 1 }}
           >
             Inscription
           </button>
         </div>
 
         {/* Formulaire */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="form-container">
           <div className="form-group">
             <label>
               Email
@@ -157,19 +123,7 @@ const AuthPage = () => {
 
           {/* Erreur */}
           {error && (
-            <div
-              style={{
-                background: "rgba(239,68,68,0.10)",
-                border: "0.5px solid rgba(239,68,68,0.30)",
-                borderRadius: "var(--radius-md)",
-                padding: "10px 14px",
-                fontSize: 13,
-                color: "var(--danger)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
+            <div className="error-message">
               <i className="ti ti-alert-circle" aria-hidden="true" />
               {error}
             </div>
@@ -177,42 +131,20 @@ const AuthPage = () => {
 
           {/* Succès */}
           {success && (
-            <div
-              style={{
-                background: "var(--pr-bg)",
-                border: "0.5px solid rgba(34,197,94,0.25)",
-                borderRadius: "var(--radius-md)",
-                padding: "10px 14px",
-                fontSize: 13,
-                color: "var(--pr)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
+            <div className="success-message">
               <i className="ti ti-check" aria-hidden="true" />
               {success}
             </div>
           )}
 
           <button
-            className="btn btn--primary"
+            className="btn btn--primary submit-btn"
             onClick={handleSubmit}
             disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              fontSize: 15,
-              marginTop: 4,
-            }}
           >
             {loading ?
               <>
-                <i
-                  className="ti ti-loader-2"
-                  style={{ animation: "spin .8s linear infinite" }}
-                  aria-hidden="true"
-                />{" "}
+                <i className="ti ti-loader-2 loading-icon" aria-hidden="true" />{" "}
                 Chargement…
               </>
             : mode === "login" ?
@@ -221,8 +153,6 @@ const AuthPage = () => {
           </button>
         </div>
       </div>
-
-      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 };

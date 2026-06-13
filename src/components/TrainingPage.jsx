@@ -24,7 +24,7 @@ const TrainingPage = () => {
   const [sessionId, setSessionId] = useState(null);
   const [activeTemplate, setActiveTemplate] = useState(null);
 
-  /* ── Init : charge les templates + sessions du jour ── */
+  /* ── Init ── */
   useEffect(() => {
     const init = async () => {
       try {
@@ -34,7 +34,7 @@ const TrainingPage = () => {
         ]);
         setTemplates(tpls);
 
-        // Cherche si une session active est mémorisée dans localStorage
+        // Cherche si une session active est mémorisée
         const savedSessionId = localStorage.getItem(
           `activeSessionId_${todayISO}`,
         );
@@ -43,7 +43,6 @@ const TrainingPage = () => {
         );
 
         if (savedSessionId && savedTemplate) {
-          // Vérifie que cette session existe bien en base
           const exists = sessions.find((s) => s.id === savedSessionId);
           if (exists) {
             setSessionId(savedSessionId);
@@ -52,8 +51,6 @@ const TrainingPage = () => {
             return;
           }
         }
-
-        // Pas de session mémorisée → écran de démarrage
         setPhase("start");
       } catch (err) {
         console.error("Erreur init TrainingPage :", err.message);
@@ -63,10 +60,11 @@ const TrainingPage = () => {
     init();
   }, [todayISO]);
 
-  /* ── Démarrer avec un template ── */
-  const handleStartTemplate = async (template) => {
+  /* ── Démarrer une séance ──
+     startSessionFromTemplate réutilise automatiquement la session
+     existante si le label est identique aujourd'hui */
+  const handleStart = async (template) => {
     try {
-      // Crée TOUJOURS une nouvelle session — même si une autre existe déjà aujourd'hui
       const session = await startSessionFromTemplate(todayISO, template.name);
       setSessionId(session.id);
       setActiveTemplate(template);
@@ -81,29 +79,12 @@ const TrainingPage = () => {
     }
   };
 
-  /* ── Démarrer en mode libre ── */
-  const handleStartFree = async () => {
-    const freeTemplate = { id: "free", name: "Séance libre", exercises: [] };
-    try {
-      const session = await startSessionFromTemplate(todayISO, "Séance libre");
-      setSessionId(session.id);
-      setActiveTemplate(freeTemplate);
-      localStorage.setItem(`activeSessionId_${todayISO}`, session.id);
-      localStorage.setItem(
-        `activeTemplate_${todayISO}`,
-        JSON.stringify(freeTemplate),
-      );
-      // Réinitialise les exercices libres pour cette nouvelle session
-      localStorage.removeItem(`freeExercises_${todayISO}`);
-      setPhase("training");
-    } catch (err) {
-      console.error("Erreur démarrage séance libre :", err.message);
-    }
-  };
+  const handleStartFree = () =>
+    handleStart({ id: "free", name: "Séance libre", exercises: [] });
 
   /* ── Changer de séance ──
-     On efface la session active → retour à l'écran de démarrage
-     La session précédente reste en base et dans l'historique */
+     On efface juste la session active en mémoire.
+     La session précédente reste en base. */
   const handleChangeSession = () => {
     localStorage.removeItem(`activeSessionId_${todayISO}`);
     localStorage.removeItem(`activeTemplate_${todayISO}`);
@@ -150,7 +131,7 @@ const TrainingPage = () => {
                 <button
                   key={t.id}
                   className="drawer-item"
-                  onClick={() => handleStartTemplate(t)}
+                  onClick={() => handleStart(t)}
                 >
                   <span
                     style={{

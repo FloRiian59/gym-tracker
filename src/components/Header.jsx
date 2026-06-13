@@ -1,18 +1,21 @@
-const Header = () => {
+const Header = ({ username, onProfileClick, activeMode }) => {
+  const initials = (username || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <header>
-      <span
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "16px",
-          fontWeight: 700,
-          letterSpacing: ".08em",
-          textTransform: "uppercase",
-          color: "var(--accent)",
-        }}
+      <span className="header__logo">Gym Tracker</span>
+      <button
+        className={`header__avatar ${activeMode === "profil" ? "header__avatar--active" : ""}`}
+        onClick={onProfileClick}
+        aria-label="Ouvrir le profil"
       >
-        Gym Tracker
-      </span>
+        {initials}
+      </button>
     </header>
   );
 };

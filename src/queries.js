@@ -2,9 +2,9 @@ import { supabase } from "./supabaseClient";
 
 /* ── Helper : récupère l'ID de l'utilisateur connecté ── */
 const getUserId = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Non connecté");
-    return user.id;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non connecté");
+  return user.id;
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -13,12 +13,12 @@ const getUserId = async () => {
 
 /** Récupère tous les groupes musculaires triés par nom */
 export const getMuscles = async () => {
-    const { data, error } = await supabase
-        .from("muscles")
-        .select("*")
-        .order("name");
-    if (error) throw error;
-    return data;
+  const { data, error } = await supabase
+    .from("muscles")
+    .select("*")
+    .order("name");
+  if (error) throw error;
+  return data;
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -31,22 +31,22 @@ export const getMuscles = async () => {
  * { "Biceps": [{ id, name, muscle_id }], "Dos": [...] }
  */
 export const getExercisesGrouped = async () => {
-    const { data, error } = await supabase
-        .from("exercises")
-        .select("id, name, muscle_id, muscles(name)")
-        .order("name");
-    if (error) throw error;
+  const { data, error } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_id, muscles(name)")
+    .order("name");
+  if (error) throw error;
 
-    return data.reduce((acc, exo) => {
-        // Supabase peut retourner muscles comme objet OU tableau selon la version
-        const muscleRaw = exo.muscles;
-        const muscleName = Array.isArray(muscleRaw)
-            ? (muscleRaw[0]?.name || "Autre")
-            : (muscleRaw?.name || "Autre");
-        if (!acc[muscleName]) acc[muscleName] = [];
-        acc[muscleName].push({ id: exo.id, name: exo.name, muscle_id: exo.muscle_id, muscleName });
-        return acc;
-    }, {});
+  return data.reduce((acc, exo) => {
+    // Supabase peut retourner muscles comme objet OU tableau selon la version
+    const muscleRaw = exo.muscles;
+    const muscleName = Array.isArray(muscleRaw)
+      ? (muscleRaw[0]?.name || "Autre")
+      : (muscleRaw?.name || "Autre");
+    if (!acc[muscleName]) acc[muscleName] = [];
+    acc[muscleName].push({ id: exo.id, name: exo.name, muscle_id: exo.muscle_id, muscleName });
+    return acc;
+  }, {});
 };
 
 /**
@@ -54,13 +54,13 @@ export const getExercisesGrouped = async () => {
  * @param {string} muscleId - UUID du muscle
  */
 export const getExercisesByMuscle = async (muscleId) => {
-    const { data, error } = await supabase
-        .from("exercises")
-        .select("id, name, muscle_id")
-        .eq("muscle_id", muscleId)
-        .order("name");
-    if (error) throw error;
-    return data;
+  const { data, error } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_id")
+    .eq("muscle_id", muscleId)
+    .order("name");
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -69,13 +69,13 @@ export const getExercisesByMuscle = async (muscleId) => {
  * @param {string} muscleId  - UUID du muscle
  */
 export const createExercise = async (name, muscleId) => {
-    const { data, error } = await supabase
-        .from("exercises")
-        .insert({ name: name.trim(), muscle_id: muscleId, user_id: (await getUserId()) })
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+  const { data, error } = await supabase
+    .from("exercises")
+    .insert({ name: name.trim(), muscle_id: muscleId, user_id: (await getUserId()) })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -83,11 +83,11 @@ export const createExercise = async (name, muscleId) => {
  * @param {string} exerciseId - UUID de l'exercice
  */
 export const deleteExercise = async (exerciseId) => {
-    const { error } = await supabase
-        .from("exercises")
-        .delete()
-        .eq("id", exerciseId);
-    if (error) throw error;
+  const { error } = await supabase
+    .from("exercises")
+    .delete()
+    .eq("id", exerciseId);
+  if (error) throw error;
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -102,14 +102,14 @@ export const deleteExercise = async (exerciseId) => {
  * @param {string} label        - Label lisible ex: "Pecs / Triceps"
  */
 export const createSession = async (date, sessionType = "classic", label = "") => {
-    const userId = await getUserId();
-    const { data, error } = await supabase
-        .from("sessions")
-        .insert({ session_date: date, session_type: sessionType, label, user_id: userId })
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("sessions")
+    .insert({ session_date: date, session_type: sessionType, label, user_id: userId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -117,13 +117,14 @@ export const createSession = async (date, sessionType = "classic", label = "") =
  * Retourne un tableau trié par created_at ASC
  */
 export const getSessionsByDate = async (date) => {
-    const { data, error } = await supabase
-        .from("sessions")
-        .select(`
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(`
       id,
       session_date,
       session_type,
       label,
+      completed_at,
       sets (
         id,
         set_number,
@@ -136,11 +137,11 @@ export const getSessionsByDate = async (date) => {
         exercises ( name )
       )
     `)
-        .eq("session_date", date)
-        .eq("user_id", await getUserId())
-        .order("created_at", { ascending: true });
-    if (error) throw error;
-    return data || [];
+    .eq("session_date", date)
+    .eq("user_id", await getUserId())
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data || [];
 };
 
 /**
@@ -148,13 +149,14 @@ export const getSessionsByDate = async (date) => {
  * Triées de la plus récente à la plus ancienne
  */
 export const getAllSessions = async () => {
-    const { data, error } = await supabase
-        .from("sessions")
-        .select(`
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(`
       id,
       session_date,
       session_type,
       label,
+      completed_at,
       sets (
         id,
         set_number,
@@ -167,10 +169,10 @@ export const getAllSessions = async () => {
         exercises ( name )
       )
     `)
-        .eq("user_id", await getUserId())
-        .order("session_date", { ascending: false });
-    if (error) throw error;
-    return data;
+    .eq("user_id", await getUserId())
+    .order("session_date", { ascending: false });
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -178,10 +180,10 @@ export const getAllSessions = async () => {
  * @param {string} date - Format "YYYY-MM-DD"
  */
 export const getSessionByDate = async (date) => {
-    const sessions = await getSessionsByDate(date);
-    // Retourne la dernière session du jour qui a des sets
-    const withSets = sessions.filter(s => s.sets && s.sets.length > 0);
-    return withSets.length > 0 ? withSets[withSets.length - 1] : (sessions.length > 0 ? sessions[sessions.length - 1] : null);
+  const sessions = await getSessionsByDate(date);
+  // Retourne la dernière session du jour qui a des sets
+  const withSets = sessions.filter(s => s.sets && s.sets.length > 0);
+  return withSets.length > 0 ? withSets[withSets.length - 1] : (sessions.length > 0 ? sessions[sessions.length - 1] : null);
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -194,9 +196,9 @@ export const getSessionByDate = async (date) => {
  * @param {string} sessionId - UUID de la séance
  */
 export const getSetsBySession = async (sessionId) => {
-    const { data, error } = await supabase
-        .from("sets")
-        .select(`
+  const { data, error } = await supabase
+    .from("sets")
+    .select(`
       id,
       set_number,
       weight_kg,
@@ -207,27 +209,27 @@ export const getSetsBySession = async (sessionId) => {
       exercise_id,
       exercises ( name )
     `)
-        .eq("session_id", sessionId)
-        .order("created_at");
-    if (error) throw error;
+    .eq("session_id", sessionId)
+    .order("created_at");
+  if (error) throw error;
 
-    // On groupe par exercise_id pour correspondre à la structure qu'utilisait le localStorage
-    return data.reduce((acc, set) => {
-        const exoId = set.exercise_id;
-        if (!acc[exoId]) {
-            acc[exoId] = { exoName: set.exercises?.name || "Inconnu", series: [] };
-        }
-        acc[exoId].series.push({
-            id: set.id,
-            serie: set.set_number,
-            charge: set.weight_kg,
-            reps: set.reps,
-            rpe: set.rpe,
-            isWarmup: set.is_warmup,
-            isPR: set.is_pr,
-        });
-        return acc;
-    }, {});
+  // On groupe par exercise_id pour correspondre à la structure qu'utilisait le localStorage
+  return data.reduce((acc, set) => {
+    const exoId = set.exercise_id;
+    if (!acc[exoId]) {
+      acc[exoId] = { exoName: set.exercises?.name || "Inconnu", series: [] };
+    }
+    acc[exoId].series.push({
+      id: set.id,
+      serie: set.set_number,
+      charge: set.weight_kg,
+      reps: set.reps,
+      rpe: set.rpe,
+      isWarmup: set.is_warmup,
+      isPR: set.is_pr,
+    });
+    return acc;
+  }, {});
 };
 
 /**
@@ -237,24 +239,24 @@ export const getSetsBySession = async (sessionId) => {
  * @param {object} setData     - { serie, charge, reps, rpe, isWarmup, isPR }
  */
 export const addSet = async (sessionId, exerciseId, setData) => {
-    const userId = await getUserId();
-    const { data, error } = await supabase
-        .from("sets")
-        .insert({
-            session_id: sessionId,
-            exercise_id: exerciseId,
-            user_id: userId,
-            set_number: setData.isWarmup ? null : setData.serie,
-            weight_kg: setData.charge,
-            reps: setData.reps,
-            rpe: setData.rpe || null,
-            is_warmup: setData.isWarmup,
-            is_pr: setData.isPR && !setData.isWarmup,
-        })
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("sets")
+    .insert({
+      session_id: sessionId,
+      exercise_id: exerciseId,
+      user_id: userId,
+      set_number: setData.isWarmup ? null : setData.serie,
+      weight_kg: setData.charge,
+      reps: setData.reps,
+      rpe: setData.rpe || null,
+      is_warmup: setData.isWarmup,
+      is_pr: setData.isPR && !setData.isWarmup,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -263,21 +265,21 @@ export const addSet = async (sessionId, exerciseId, setData) => {
  * @param {object} setData  - { serie, charge, reps, rpe, isWarmup, isPR }
  */
 export const updateSet = async (setId, setData) => {
-    const { data, error } = await supabase
-        .from("sets")
-        .update({
-            set_number: setData.isWarmup ? null : setData.serie,
-            weight_kg: setData.charge,
-            reps: setData.reps,
-            rpe: setData.rpe || null,
-            is_warmup: setData.isWarmup,
-            is_pr: setData.isPR && !setData.isWarmup,
-        })
-        .eq("id", setId)
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+  const { data, error } = await supabase
+    .from("sets")
+    .update({
+      set_number: setData.isWarmup ? null : setData.serie,
+      weight_kg: setData.charge,
+      reps: setData.reps,
+      rpe: setData.rpe || null,
+      is_warmup: setData.isWarmup,
+      is_pr: setData.isPR && !setData.isWarmup,
+    })
+    .eq("id", setId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -285,11 +287,11 @@ export const updateSet = async (setId, setData) => {
  * @param {string} setId - UUID de la série
  */
 export const deleteSet = async (setId) => {
-    const { error } = await supabase
-        .from("sets")
-        .delete()
-        .eq("id", setId);
-    if (error) throw error;
+  const { error } = await supabase
+    .from("sets")
+    .delete()
+    .eq("id", setId);
+  if (error) throw error;
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -301,40 +303,79 @@ export const deleteSet = async (setId) => {
  * Si aucun profil n'existe, en crée un par défaut
  */
 export const getProfile = async () => {
-    const userId = await getUserId();
-    const { data: rows, error } = await supabase
-        .from("profile")
-        .select("*")
-        .eq("user_id", userId)
-        .limit(1);
-    if (error) throw error;
+  const userId = await getUserId();
+  const { data: rows, error } = await supabase
+    .from("profile")
+    .select("*")
+    .eq("user_id", userId)
+    .limit(1);
+  if (error) throw error;
 
-    if (rows && rows.length > 0) return rows[0];
+  if (rows && rows.length > 0) return rows[0];
 
-    // Aucun profil pour cet utilisateur → on en crée un
-    const { data: created, error: createError } = await supabase
-        .from("profile")
-        .insert({ username: "Mon profil", user_id: userId })
-        .select()
-        .single();
-    if (createError) throw createError;
-    return created;
+  // Aucun profil pour cet utilisateur → on en crée un
+  const { data: created, error: createError } = await supabase
+    .from("profile")
+    .insert({ username: "Mon profil", user_id: userId })
+    .select()
+    .single();
+  if (createError) throw createError;
+  return created;
 };
 
 /**
- * Met à jour le nom du profil
+ * Met à jour le profil — accepte un objet avec les champs à modifier
  * @param {string} profileId - UUID du profil
- * @param {string} username  - Nouveau nom
+ * @param {object} updates   - { username, gender, height_cm, weight_kg, rest_time }
  */
-export const updateProfile = async (profileId, username) => {
-    const { data, error } = await supabase
-        .from("profile")
-        .update({ username: username.trim() })
-        .eq("id", profileId)
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+export const updateProfile = async (profileId, updates) => {
+  // Compatibilité : si on passe juste un string, c'est le username
+  const payload = typeof updates === "string"
+    ? { username: updates.trim() }
+    : updates;
+
+  const { data, error } = await supabase
+    .from("profile")
+    .update(payload)
+    .eq("id", profileId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+/* ─────────────────────────────────────────────────────────
+   COMPLETE SESSION
+───────────────────────────────────────────────────────── */
+
+/**
+ * Marque une session comme terminée
+ * @param {string} sessionId - UUID de la session
+ */
+export const completeSession = async (sessionId) => {
+  const { data, error } = await supabase
+    .from("sessions")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Démarre officiellement une séance — enregistre started_at
+ * @param {string} sessionId - UUID de la session
+ */
+export const startSession = async (sessionId) => {
+  const { data, error } = await supabase
+    .from("sessions")
+    .update({ started_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -346,10 +387,10 @@ export const updateProfile = async (profileId, username) => {
  * Retourne : [{ id, name, exercises: [{ id, name, position, exercise_id }] }]
  */
 export const getTemplates = async () => {
-    const userId = await getUserId();
-    const { data, error } = await supabase
-        .from("session_templates")
-        .select(`
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("session_templates")
+    .select(`
       id,
       name,
       created_at,
@@ -360,23 +401,23 @@ export const getTemplates = async () => {
         exercises ( id, name, muscles(name) )
       )
     `)
-        .eq("user_id", userId)
-        .order("created_at");
-    if (error) throw error;
+    .eq("user_id", userId)
+    .order("created_at");
+  if (error) throw error;
 
-    return data.map(t => ({
-        id: t.id,
-        name: t.name,
-        exercises: (t.session_template_exercises || [])
-            .sort((a, b) => a.position - b.position)
-            .map(te => ({
-                templateExerciseId: te.id,
-                exercise_id: te.exercise_id,
-                position: te.position,
-                name: te.exercises?.name || "Inconnu",
-                muscleName: te.exercises?.muscles?.name || "",
-            })),
-    }));
+  return data.map(t => ({
+    id: t.id,
+    name: t.name,
+    exercises: (t.session_template_exercises || [])
+      .sort((a, b) => a.position - b.position)
+      .map(te => ({
+        templateExerciseId: te.id,
+        exercise_id: te.exercise_id,
+        position: te.position,
+        name: te.exercises?.name || "Inconnu",
+        muscleName: te.exercises?.muscles?.name || "",
+      })),
+  }));
 };
 
 /**
@@ -384,13 +425,13 @@ export const getTemplates = async () => {
  * @param {string} name - Nom du template (ex: "Push", "Pull")
  */
 export const createTemplate = async (name) => {
-    const { data, error } = await supabase
-        .from("session_templates")
-        .insert({ name: name.trim(), user_id: (await getUserId()) })
-        .select()
-        .single();
-    if (error) throw error;
-    return { id: data.id, name: data.name, exercises: [] };
+  const { data, error } = await supabase
+    .from("session_templates")
+    .insert({ name: name.trim(), user_id: (await getUserId()) })
+    .select()
+    .single();
+  if (error) throw error;
+  return { id: data.id, name: data.name, exercises: [] };
 };
 
 /**
@@ -399,14 +440,14 @@ export const createTemplate = async (name) => {
  * @param {string} name       - Nouveau nom
  */
 export const renameTemplate = async (templateId, name) => {
-    const { data, error } = await supabase
-        .from("session_templates")
-        .update({ name: name.trim() })
-        .eq("id", templateId)
-        .select()
-        .single();
-    if (error) throw error;
-    return data;
+  const { data, error } = await supabase
+    .from("session_templates")
+    .update({ name: name.trim() })
+    .eq("id", templateId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 };
 
 /**
@@ -414,11 +455,11 @@ export const renameTemplate = async (templateId, name) => {
  * @param {string} templateId - UUID du template
  */
 export const deleteTemplate = async (templateId) => {
-    const { error } = await supabase
-        .from("session_templates")
-        .delete()
-        .eq("id", templateId);
-    if (error) throw error;
+  const { error } = await supabase
+    .from("session_templates")
+    .delete()
+    .eq("id", templateId);
+  if (error) throw error;
 };
 
 /**
@@ -428,24 +469,24 @@ export const deleteTemplate = async (templateId) => {
  * @param {number} position    - Ordre dans la liste
  */
 export const addExerciseToTemplate = async (templateId, exerciseId, position = 0) => {
-    const { data, error } = await supabase
-        .from("session_template_exercises")
-        .insert({ template_id: templateId, exercise_id: exerciseId, position, user_id: (await getUserId()) })
-        .select(`
+  const { data, error } = await supabase
+    .from("session_template_exercises")
+    .insert({ template_id: templateId, exercise_id: exerciseId, position, user_id: (await getUserId()) })
+    .select(`
       id,
       position,
       exercise_id,
       exercises ( id, name, muscles(name) )
     `)
-        .single();
-    if (error) throw error;
-    return {
-        templateExerciseId: data.id,
-        exercise_id: data.exercise_id,
-        position: data.position,
-        name: data.exercises?.name || "Inconnu",
-        muscleName: data.exercises?.muscles?.name || "",
-    };
+    .single();
+  if (error) throw error;
+  return {
+    templateExerciseId: data.id,
+    exercise_id: data.exercise_id,
+    position: data.position,
+    name: data.exercises?.name || "Inconnu",
+    muscleName: data.exercises?.muscles?.name || "",
+  };
 };
 
 /**
@@ -453,11 +494,11 @@ export const addExerciseToTemplate = async (templateId, exerciseId, position = 0
  * @param {string} templateExerciseId - UUID de la ligne session_template_exercises
  */
 export const removeExerciseFromTemplate = async (templateExerciseId) => {
-    const { error } = await supabase
-        .from("session_template_exercises")
-        .delete()
-        .eq("id", templateExerciseId);
-    if (error) throw error;
+  const { error } = await supabase
+    .from("session_template_exercises")
+    .delete()
+    .eq("id", templateExerciseId);
+  if (error) throw error;
 };
 
 /**
@@ -466,6 +507,27 @@ export const removeExerciseFromTemplate = async (templateExerciseId) => {
  * @param {string} date         - "YYYY-MM-DD"
  * @param {string} templateName - Nom lisible pour le label
  */
+/**
+ * Démarre une séance — réutilise la session existante du jour
+ * si le label est identique, sinon en crée une nouvelle.
+ * Règle : même séance le même jour = même session.
+ *         séance différente le même jour = nouvelle session.
+ */
 export const startSessionFromTemplate = async (date, templateName) => {
-    return await createSession(date, "classic", templateName);
+  const userId = await getUserId();
+
+  // Cherche une session existante avec le même label aujourd'hui
+  const { data: existing } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("session_date", date)
+    .eq("label", templateName)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (existing && existing.length > 0) return existing[0];
+
+  // Aucune session avec ce label aujourd'hui → on en crée une nouvelle
+  return await createSession(date, "classic", templateName);
 };
